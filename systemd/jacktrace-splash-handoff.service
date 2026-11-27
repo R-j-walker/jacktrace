@@ -1,0 +1,14 @@
+[Unit]
+Description=Hold JackTrace Plymouth Splash Until API Ready
+After=pi-nettester.service plymouth-start.service
+Before=jacktrace-kiosk.service
+Conflicts=plymouth-quit.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+TimeoutStartSec=20
+ExecStart=/usr/local/bin/jacktrace-kiosk-pre
+
+[Install]
+WantedBy=graphical.target multi-user.target

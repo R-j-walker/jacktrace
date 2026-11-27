@@ -1,0 +1,18 @@
+[Unit]
+Description=Raspberry Pi 4 Field Network Tester (Phase 1)
+After=network.target lldpd.service
+Wants=lldpd.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=__APP_DIR__
+Environment="NETTESTER_IFACE=__IFACE__"
+Environment="NETTESTER_DEMO=0"
+Environment="NETTESTER_PORT=8080"
+ExecStart=__APP_DIR__/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

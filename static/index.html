@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>JackTrace — Field Network Analyzer</title>
+  <link rel="stylesheet" href="/static/style.css?v=5.7">
+</head>
+<body>
+  <div class="bench-shell">
+    <!-- 800x480 Bench Instrument Viewport -->
+    <main class="tester-screen" id="tester-screen">
+      <!-- Persistent 58px Left Instrument Rail -->
+      <aside class="nav-rail" id="nav-rail" aria-label="Primary Instrument Navigation">
+        <div class="rail-group" id="rail-group-std">
+          <button class="rail-btn active" id="rail-home" onclick="nav('home')" title="Live Workbench &amp; AutoTest">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>LIVE</span>
+          </button>
+          <button class="rail-btn" id="rail-sw" onclick="nav('sw')" title="Switch, Faceplate, VLAN &amp; SNMP">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/></svg>
+            <span>PORT</span>
+          </button>
+          <button class="rail-btn" id="rail-link" onclick="nav('link')" title="Hardware Cable TDR &amp; Line Stress">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 5 13 19 16 12 22 12"/></svg>
+            <span>TDR</span>
+          </button>
+          <button class="rail-btn" id="rail-diag" onclick="nav('diag')" title="Ping, Trace/MTU, WAN Speed &amp; iperf3">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+            <span>PATH</span>
+          </button>
+          <button class="rail-btn" id="rail-scan" onclick="nav('scan')" title="Subnet Host Scanner &amp; WoL">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V13m0 0L6.8 17.2M12 13l5.2 4.2"/></svg>
+            <span>SCAN</span>
+          </button>
+          <button class="rail-btn" id="rail-wifi" onclick="nav('wifi')" title="Wi-Fi Site Survey, Channels &amp; Walk Meter">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+            <span>WIFI</span>
+          </button>
+          <button class="rail-btn" id="rail-sec" onclick="nav('sec')" title="Security Grade, L2 Forensics &amp; PCAP/Tap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>SEC</span>
+          </button>
+          <button class="rail-btn" id="rail-audit" onclick="nav('audit')" title="Audit Log, PDF Portal, NetBox Sync &amp; BT Printer">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            <span>LOG</span>
+          </button>
+        </div>
+        <div class="rail-group hidden" id="rail-group-pt">
+          <button class="rail-btn active" id="rail-pt-hub" onclick="nav('pt-hub')" title="Pentest Mode Command Hub">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span>HUB</span>
+          </button>
+          <button class="rail-btn" id="rail-pt-recon" onclick="nav('pt-recon')" title="Active Host &amp; Service Recon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>RECON</span>
+          </button>
+          <button class="rail-btn" id="rail-pt-sniff" onclick="nav('pt-sniff')" title="Passive Exposure Sniffer &amp; Live PCAP Stream">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>SNIFF</span>
+          </button>
+          <button class="rail-btn" id="rail-pt-nac" onclick="nav('pt-nac')" title="Inline Tap, 802.1X &amp; MAC Spoof">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>NAC</span>
+          </button>
+          <button class="rail-btn" id="rail-pt-wifi" onclick="nav('pt-wifi')" title="USB Wi-Fi &amp; Rogue AP Watch">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+            <span>WIFI+</span>
+          </button>
+          <button class="rail-btn" id="rail-pt-log" onclick="nav('audit')" title="Audit Log &amp; Reports">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            <span>LOG</span>
+          </button>
+        </div>
+        <button class="rail-btn rail-sys" id="rail-sys" onclick="toggleSysModal()" title="System, Wi-Fi, Brightness, NICs &amp; Remote">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>SYS</span>
+        </button>
+      </aside>
+
+      <!-- Main Stage (742 x 480) -->
+      <div class="stage-shell">
+        <!-- Slim Silkscreen Status Header -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <span class="brand-wordmark" onclick="nav(pentestUiActive ? 'pt-hub' : 'home')" title="Return to Workbench">JACKTRACE</span>
+            <span class="topbar-sep">/</span>
+            <span class="brand-tag" id="top-title">LIVE WORKBENCH</span>
+          </div>
+          <div class="topbar-pills">
+            <button class="pill pill-btn pill-mode-btn" id="pill-mode" onclick="onModePillClick()" title="Toggle Authorized Pentest Mode">LIVE</button>
+            <button class="pill pill-btn pill-tailcat hidden" id="pill-tailcat" onclick="openSysRemoteTab()" title="Tailcat Tunnel Active — Tap to Inspect">TC</button>
+            <span class="pill pill-poe hidden" id="pill-poe">PoE</span>
+            <button class="pill pill-btn" id="pill-link" onclick="nav('sw')" title="Inspect Switch &amp; Port">
+              <span class="dot" id="link-dot"></span>
+              <span id="pill-link-txt">eth0 • Waiting</span>
+            </button>
+            <button class="pill pill-btn pill-wifi" id="pill-wifi" onclick="openSysWifiTab()" title="Wi-Fi Status — Tap to Switch Wi-Fi">
+              <span class="dot" id="wifi-dot"></span>
+              <span id="pill-wifi-txt">Wi-Fi • —</span>
+            </button>
+            <button class="pill pill-btn pill-temp" onclick="toggleSysModal()" title="System, Wi-Fi, IP &amp; Calibration">
+              <span id="pill-temp">SYS</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="stage-body">
+          <!-- VIEW: LIVE WORKBENCH OVERVIEW -->
+          <section class="view active" id="view-home">
+            <!-- Top Live Port Hero Strip -->
+            <div class="live-hero-card">
+              <button class="live-port-box" onclick="nav('sw')" title="Open Switch &amp; Faceplate">
+                <span class="live-port-lbl">PORT</span>
+                <span class="live-port-num" id="live-port-num">—</span>
+              </button>
+              <div class="live-hero-mid" onclick="nav('autotest')" title="Tap to open full AutoTest checklist">
+                <div class="live-hero-top">
+                  <span class="verdict-chip" id="live-at-chip">AUTOTEST WAIT</span>
+                  <span class="live-proto-meta" id="live-proto-meta">Plug into wall socket to start diagnostics</span>
+                </div>
+                <div class="live-sw-model" id="live-sw-model">Waiting for Switch / Link</div>
+                <div class="live-sw-sub" id="live-sw-sub">LLDP / CDP passive listen • Broadcom TDR ready</div>
+              </div>
+              <div class="live-hero-acts">
+                <button class="cmd-btn cmd-primary" id="live-btn-blink" onclick="toggleBlink()">⚡ BLINK PORT</button>
+                <button class="cmd-btn cmd-neutral" id="live-btn-save" onclick="quickSavePort()">💾 LOG W-01</button>
+              </div>
+            </div>
+
+            <!-- 4x2 Rich Instrument Module Grid -->
+            <div class="bench-grid">
+              <button class="bench-tile" onclick="nav('autotest')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-amber">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    </span>
+                    <span>AUTOTEST</span>
+                  </span>
+                  <span class="verdict-chip tile-chip" id="home-badge-01">WAIT</span>
+                </div>
+                <div class="bench-tile-metric v-amber" id="home-val-01">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-01">Plug into wall port</div>
+                  <div class="bench-tile-meta" id="home-meta-01">Standard WAN profile</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('sw')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-amber">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/></svg>
+                    </span>
+                    <span>SWITCH PORT</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-02">LLDP</span>
+                </div>
+                <div class="bench-tile-metric v-cyan" id="home-val-02">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-02">Waiting for neighbor...</div>
+                  <div class="bench-tile-meta" id="home-meta-02">Native VLAN · PoE</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('link')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-mint">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 5 13 19 16 12 22 12"/></svg>
+                    </span>
+                    <span>CABLE &amp; PHY</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-03">TDR</span>
+                </div>
+                <div class="bench-tile-metric v-good" id="home-val-03">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-03">4-pair length &amp; wiremap</div>
+                  <div class="bench-tile-meta" id="home-meta-03">Cat5e (69%) · 0 CRC</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('diag')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-silver">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                    </span>
+                    <span>SPEED &amp; PATH</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-04">PING</span>
+                </div>
+                <div class="bench-tile-metric" id="home-val-04">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-04">Ping, Trace, WAN, iperf3</div>
+                  <div class="bench-tile-meta" id="home-meta-04">DNS · Internet</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('scan')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-silver">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V13m0 0L6.8 17.2M12 13l5.2 4.2"/></svg>
+                    </span>
+                    <span>SUBNET HOSTS</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-05">IDLE</span>
+                </div>
+                <div class="bench-tile-metric" id="home-val-05">0 HOSTS</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-05">Sweep /24 &amp; WoL</div>
+                  <div class="bench-tile-meta" id="home-meta-05">GW —</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('wifi')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-silver">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    </span>
+                    <span>WI-FI LINK</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-06">SCAN</span>
+                </div>
+                <div class="bench-tile-metric v-cyan" id="home-val-06">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-06">Channels &amp; walk meter</div>
+                  <div class="bench-tile-meta" id="home-meta-06">Tap to survey</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('sec')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-mint">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </span>
+                    <span>SECURITY &amp; TAP</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-07">L2</span>
+                </div>
+                <div class="bench-tile-metric" id="home-val-07">—</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-07">Rogue DHCP, PCAP, br0</div>
+                  <div class="bench-tile-meta" id="home-meta-07">STP · 802.1X</div>
+                </div>
+              </button>
+
+              <button class="bench-tile" onclick="nav('audit')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker">
+                    <span class="tile-icon ic-silver">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+                    </span>
+                    <span>AUDIT &amp; SYNC</span>
+                  </span>
+                  <span class="tile-stat" id="home-badge-08">0 LOGS</span>
+                </div>
+                <div class="bench-tile-metric" id="home-val-08">W-01 NEXT</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="home-sub-08">PDF, NetBox &amp; 58mm BT</div>
+                  <div class="bench-tile-meta" id="home-meta-08">Queue: 0</div>
+                </div>
+              </button>
+            </div>
+
+            <!-- Compact Bottom Instrument Strip -->
+            <div class="foot-strip">
+              <span>JOB: <b id="live-job-name">West Wing Audit</b></span>
+              <span>NEXT: <b class="v-amber" id="live-next-drop">W-01</b></span>
+              <span class="foot-url">PORTAL: <b id="live-portal-url">—</b></span>
+            </div>
+          </section>
+
+          <!-- VIEW: AUTOTEST CHECKLIST -->
+          <section class="view" id="view-autotest">
+            <div class="cmd-strip" id="at-banner">
+              <div class="cmd-strip-info">
+                <div class="banner-title" id="at-banner-title">Plug into wall socket to run AutoTest...</div>
+                <div class="banner-sub" id="at-banner-sub">Runs automatically on carrier up • Toggle LAN-Only for offline switches</div>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="mini-btn" id="btn-at-profile" onclick="toggleAutotestProfile()">Profile: WAN</button>
+                <button class="mini-btn" id="btn-at-autolog" onclick="toggleAutotestAutoLog()">Auto-Log: OFF</button>
+                <span class="verdict-chip" id="at-verdict-chip">WAIT</span>
+                <button class="cmd-btn cmd-primary" onclick="runAutotestNow()" id="btn-at-run-title">RE-RUN</button>
+                <button class="cmd-btn cmd-good" onclick="quickSavePort()" id="at-save-title">SAVE W-01</button>
+              </div>
+            </div>
+
+            <div class="at-grid" id="at-grid"></div>
+          </section>
+
+          <!-- VIEW: SWITCH & PORT IDENTIFIER + VLAN PROBER + SNMP READ -->
+          <section class="view" id="view-sw">
+            <div class="cmd-bar">
+              <div class="seg-tabs">
+                <button class="seg-tab active" id="swtab-panel" onclick="setSwTab('panel')">FACEPLATE &amp; ID</button>
+                <button class="seg-tab" id="swtab-vlan" onclick="setSwTab('vlan')">VLAN PROBE</button>
+                <button class="seg-tab" id="swtab-snmp" onclick="setSwTab('snmp')">SNMPv2c</button>
+              </div>
+              <div class="cmd-strip-acts" id="sw-panel-cmds">
+                <button class="cmd-btn cmd-primary" id="btn-blink" onclick="toggleBlink()">
+                  <span id="btn-blink-title">⚡ BLINK LED</span>
+                </button>
+                <button class="cmd-btn cmd-neutral" onclick="rescanPort()">
+                  <span id="btn-rescan-title">RE-SCAN</span>
+                </button>
+                <button class="cmd-btn cmd-good" onclick="quickSavePort()">
+                  <span id="sw-save-title">SAVE W-01</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 1: ASYMMETRIC WORKBENCH (PORT SPEC LEFT + LARGE FACEPLATE RIGHT) -->
+            <div class="diag-pane" id="sw-pane-panel">
+              <div class="sw-workbench">
+                <!-- Left Spec Column -->
+                <div class="info-card sw-spec-col">
+                  <div class="sw-port-hdr">
+                    <div style="min-width:0;">
+                      <div class="kicker" id="sw-kicker">WAITING FOR LINK / LLDP</div>
+                      <div class="sw-port-big" id="sw-port">PORT —</div>
+                    </div>
+                    <span class="verdict-chip" id="sw-verdict">WAIT</span>
+                  </div>
+                  <div class="sw-id-block">
+                    <div class="sw-model" id="sw-model">No Switch Detected</div>
+                    <div class="sw-meta" id="sw-meta">Host: — • IP: —</div>
+                    <div class="sw-port-loc" id="sw-loc">Plug eth0 into a wall socket</div>
+                  </div>
+                  <div class="sw-kv-stack">
+                    <div class="kv"><span class="k">Link / PHY</span><span class="v" id="sw-kv-speed">—</span></div>
+                    <div class="kv"><span class="k">PoE Power</span><span class="v" id="sw-kv-poe">—</span></div>
+                    <div class="kv"><span class="k">Native VLAN</span><span class="v" id="sw-kv-pvid">—</span></div>
+                    <div class="kv"><span class="k">Voice VLAN</span><span class="v" id="sw-kv-voice">—</span></div>
+                    <div class="kv"><span class="k">802.1X NAC</span><span class="v" id="sw-kv-nac">—</span></div>
+                    <div class="kv"><span class="k">Gateway</span><span class="v" id="sw-kv-gw">—</span></div>
+                  </div>
+                </div>
+
+                <!-- Right Large Faceplate & Protocol Telemetry -->
+                <div class="sw-fp-col">
+                  <div class="info-card faceplate-panel">
+                    <div class="fp-header">
+                      <span id="fp-title">24-PORT SWITCH FACEPLATE</span>
+                      <span class="fp-blink-tag" id="fp-blink-tag">LED: NORMAL</span>
+                    </div>
+                    <div class="fp-bezel">
+                      <div class="fp-grid cols-12" id="fp-grid"></div>
+                    </div>
+                    <div class="fp-footer" id="fp-footer">
+                      <span>TOP: ODD</span><span>BOT: EVEN</span>
+                    </div>
+                    <div class="sw-sub-cells">
+                      <div class="sub-cell">
+                        <div class="sub-cell-lbl">CHASSIS MAC</div>
+                        <div class="sub-cell-val" id="sw-kv-mac">—</div>
+                      </div>
+                      <div class="sub-cell">
+                        <div class="sub-cell-lbl">TAGGED TRUNKS</div>
+                        <div class="sub-cell-val v-cyan" id="sw-kv-tags">—</div>
+                      </div>
+                      <div class="sub-cell">
+                        <div class="sub-cell-lbl">PORT / PROTO</div>
+                        <div class="sub-cell-val v-good" id="sw-kv-proto">—</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: ACTIVE 802.1Q VLAN TRUNK PROBER -->
+            <div class="diag-pane hidden" id="sw-pane-vlan">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="vlan-preset-chips" style="flex-wrap:wrap;flex:1;"></div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                  <button class="mini-btn" onclick="openAddVlanPreset()">+ VLAN</button>
+                  <button class="diag-go-btn" id="btn-vlan-probe" onclick="runVlanProbeNow()">PROBE TRUNK</button>
+                </div>
+              </div>
+
+              <div class="table-card" style="overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span id="vlan-probe-hdr">802.1Q SUB-INTERFACE DHCP / TRUNK PROBE</span>
+                  <span class="v-cyan" id="vlan-probe-ts">Ready</span>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th style="width:12%">VLAN ID</th>
+                      <th style="width:14%">SOURCE</th>
+                      <th style="width:18%">STATUS</th>
+                      <th style="width:24%">DHCP SERVER / IP</th>
+                      <th style="width:32%">GATEWAY / DNS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vlan-probe-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: MANUAL SNMPv2c SWITCH READ -->
+            <div class="diag-pane hidden" id="sw-pane-snmp">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" style="flex:1;">
+                  <span class="k" style="font-size:10.5px;">Switch IP:</span>
+                  <b class="v-cyan mono" style="font-size:11px;" id="snmp-target-lbl">—</b>
+                  <button class="mini-btn" onclick="editSnmpTarget()" title="Override Target IP">⌨ IP</button>
+                  <span class="k" style="font-size:10.5px;margin-left:6px;">Community:</span>
+                  <button class="target-chip active" id="btn-snmp-comm" onclick="editSnmpCommunity()">public ⌨</button>
+                </div>
+                <button class="diag-go-btn" id="btn-snmp-query" onclick="querySnmpNow()">QUERY SNMP</button>
+              </div>
+
+              <div class="two-col">
+                <div class="info-card">
+                  <div class="card-hdr">SWITCH SYSTEM MIB-II IDENTITY</div>
+                  <div class="kv"><span class="k">SysName</span><span class="v v-cyan" id="snmp-sysname">—</span></div>
+                  <div class="kv"><span class="k">SysDescr</span><span class="v" id="snmp-sysdescr">—</span></div>
+                  <div class="kv"><span class="k">Uptime</span><span class="v v-good" id="snmp-uptime">—</span></div>
+                  <div class="kv"><span class="k">Last Query / Err</span><span class="v" id="snmp-err">Manual-tap only</span></div>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-hdr">PORT COUNTERS &amp; CHASSIS PoE</div>
+                  <div class="kv"><span class="k">Matched Port</span><span class="v v-cyan" id="snmp-port">—</span></div>
+                  <div class="kv"><span class="k">ifInErrors (RX)</span><span class="v" id="snmp-in-err">—</span></div>
+                  <div class="kv"><span class="k">ifOutErrors (TX)</span><span class="v" id="snmp-out-err">—</span></div>
+                  <div class="kv"><span class="k">Chassis PoE Draw</span><span class="v v-good" id="snmp-poe">—</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: BROADCOM HARDWARE TDR, WIREMAP & LINE STRESS -->
+          <section class="view" id="view-link">
+            <div class="link-tabs">
+              <button class="diag-tab active" id="ltab-tdr" onclick="setLinkTab('tdr')">📏 CABLE TDR</button>
+              <button class="diag-tab" id="ltab-wiremap" onclick="setLinkTab('wiremap')">🔌 WIREMAP &amp; PHY</button>
+            </div>
+
+            <!-- SUB-TAB 1: 4-PAIR HARDWARE TDR -->
+            <div class="diag-pane" id="link-pane-tdr">
+              <div class="cmd-strip" id="pair-banner">
+                <div class="cmd-strip-info">
+                  <div style="display:flex;align-items:center;gap:7px;">
+                    <span class="verdict-chip" id="pair-chip">—</span>
+                    <div class="banner-title" id="pair-banner-title">Checking Physical Layer...</div>
+                  </div>
+                  <div class="banner-sub" id="pair-banner-sub">Broadcom BCM54213PE TDR • Tap PULSE TDR to measure cable length &amp; faults</div>
+                </div>
+                <div class="cmd-strip-acts">
+                  <button class="cmd-btn cmd-primary" id="btn-tdr" onclick="runTdrPulse()">
+                    <span id="btn-tdr-title">PULSE TDR</span>
+                  </button>
+                  <button class="cmd-btn cmd-neutral" id="btn-stress" onclick="runStress()">
+                    <span id="btn-stress-title">20-PKT STRESS</span>
+                  </button>
+                  <button class="cmd-btn cmd-good" onclick="quickSavePort()">
+                    <span id="tdr-save-title">SAVE W-01</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4-Pair TIA-568B TDR Reflectometry Panel with Distance Scale -->
+              <div class="tdr-panel">
+                <div class="tdr-scale-hdr">
+                  <span>TIA-568B PAIR</span>
+                  <div class="tdr-scale-ticks" id="tdr-scale-labels">
+                    <span>0m</span><span>10m</span><span>20m</span><span>30m</span><span>40m SCALE</span>
+                  </div>
+                  <span style="text-align:right;">VERDICT</span>
+                </div>
+                <div class="tdr-rows-wrap" id="tdr-rows"></div>
+              </div>
+
+              <!-- Bottom 4-Metric Telemetry Strip -->
+              <div class="diag-stat-row">
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">NIC / LINK SPEED</div>
+                  <div class="pdf-stat-val" id="phy-nic-speed">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">AUTONEG / PAIRS</div>
+                  <div class="pdf-stat-val" id="phy-autoneg">—</div>
+                  <div class="stat-micro" id="phy-frames">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">BURST LINE STRESS</div>
+                  <div class="pdf-stat-val" id="st-verdict">Not Run</div>
+                  <div class="stat-micro" id="st-loss">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">PHY RX CRC ERR</div>
+                  <div class="pdf-stat-val v-cyan" id="st-crc">0 total</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: SOFTWARE WIREMAP & PHY INTEGRITY -->
+            <div class="diag-pane hidden" id="link-pane-wiremap">
+              <div class="cmd-strip" id="wm-banner">
+                <div class="cmd-strip-info">
+                  <div style="display:flex;align-items:center;gap:7px;">
+                    <span class="verdict-chip" id="wm-chip">—</span>
+                    <div class="banner-title" id="wm-title">Inspecting PHY Wiring State...</div>
+                  </div>
+                  <div class="banner-sub" id="wm-sub">IEEE 802.3 &amp; Broadcom BCM54213PE DSP Integrity</div>
+                </div>
+                <div class="cmd-strip-acts">
+                  <button class="cmd-btn cmd-primary" onclick="runTdrPulse()">
+                    <span>PULSE TDR</span>
+                  </button>
+                  <button class="cmd-btn cmd-neutral" onclick="resetPhyErrors()">
+                    <span>RESET ERR</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="wm-card">
+                <div class="wm-hdr">
+                  <span>LOCAL RJ45 (TIA-568B)</span>
+                  <span class="v-cyan" id="wm-hdr-role">4-PAIR SOFTWARE WIREMAP</span>
+                  <span>FAR END</span>
+                </div>
+                <svg id="wm-svg" class="wm-svg" viewBox="0 0 680 128" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+
+              <div class="two-col compact-two-col">
+                <div class="info-card compact-card">
+                  <div class="card-hdr">PHY WIRING &amp; LOCK</div>
+                  <div class="kv"><span class="k">PHY Pin Role</span><span class="v" id="wm-mdix">—</span></div>
+                  <div class="kv"><span class="k">1000T Role</span><span class="v" id="wm-role">—</span></div>
+                  <div class="kv"><span class="k">RX Lock (Loc/Rem)</span><span class="v" id="wm-rxlock">—</span></div>
+                  <div class="kv"><span class="k">PHY Chip</span><span class="v v-cyan" id="wm-phy">—</span></div>
+                </div>
+
+                <div class="info-card compact-card">
+                  <div class="card-hdr">SIGNAL &amp; SPLIT-PAIR MONITORS</div>
+                  <div class="kv"><span class="k">1G Idle Errors</span><span class="v" id="wm-idle">0</span></div>
+                  <div class="kv"><span class="k">RX Symbol Err</span><span class="v" id="wm-sym">0</span></div>
+                  <div class="kv"><span class="k">False Carrier</span><span class="v" id="wm-fcs">0</span></div>
+                  <div class="kv"><span class="k">RX NOT_OK (L/R)</span><span class="v" id="wm-nok">0 / 0</span></div>
+                </div>
+              </div>
+
+              <div class="wm-note">
+                Software PHY map detects opens, shorts, cross-shorts, 2-pair downshift, MDI-X &amp; split-pair noise. Pin reversals require a DC dongle.
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: SPEED & PATH DIAGNOSTICS -->
+          <section class="view" id="view-diag">
+            <div class="diag-tabs">
+              <button class="diag-tab active" id="dtab-ping" onclick="setDiagTab('ping')">LIVE PING</button>
+              <button class="diag-tab" id="dtab-trace" onclick="setDiagTab('trace')">TRACE &amp; MTU</button>
+              <button class="diag-tab" id="dtab-speed" onclick="setDiagTab('speed')">WAN SPEED</button>
+              <button class="diag-tab" id="dtab-iperf" onclick="setDiagTab('iperf')">iPERF3 LAN</button>
+            </div>
+
+            <!-- SUB-TAB 1: LIVE PING SPARKLINE -->
+            <div class="diag-pane" id="diag-pane-ping">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="ping-target-chips">
+                  <button class="target-chip active" data-t="gw" onclick="selectPingTarget('gw')">Gateway</button>
+                  <button class="target-chip" data-t="1.1.1.1" onclick="selectPingTarget('1.1.1.1')">1.1.1.1</button>
+                  <button class="target-chip" data-t="8.8.8.8" onclick="selectPingTarget('8.8.8.8')">8.8.8.8</button>
+                  <button class="target-chip" data-t="custom" onclick="openCustomPingTarget()">⌨ Custom</button>
+                </div>
+                <button class="diag-go-btn" id="btn-ping-toggle" onclick="togglePingMonitor()">▶ START PING</button>
+              </div>
+
+              <div class="spark-card">
+                <div class="card-hdr-flex">
+                  <span id="ping-hdr-left">PING SPARKLINE • TARGET: —</span>
+                  <span class="v-cyan" id="ping-hdr-right">Idle</span>
+                </div>
+                <canvas id="ping-canvas" width="692" height="190"></canvas>
+              </div>
+
+              <div class="diag-stat-row">
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Avg RTT</div>
+                  <div class="pdf-stat-val v-cyan" id="ping-stat-avg">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Min / Max</div>
+                  <div class="pdf-stat-val" id="ping-stat-minmax">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Jitter (MAD)</div>
+                  <div class="pdf-stat-val" id="ping-stat-jitter">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Packet Loss</div>
+                  <div class="pdf-stat-val v-good" id="ping-stat-loss">0.0%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: TRACEROUTE & MTU DISCOVERY -->
+            <div class="diag-pane hidden" id="diag-pane-trace">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="trace-target-chips">
+                  <button class="target-chip active" data-t="1.1.1.1" onclick="selectTraceTarget('1.1.1.1')">1.1.1.1</button>
+                  <button class="target-chip" data-t="8.8.8.8" onclick="selectTraceTarget('8.8.8.8')">8.8.8.8</button>
+                  <button class="target-chip" data-t="gw" onclick="selectTraceTarget('gw')">Gateway</button>
+                  <button class="target-chip" data-t="custom" onclick="openCustomTraceTarget()">⌨ Custom</button>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="diag-go-btn" id="btn-trace-run" onclick="runTracerouteNow()">TRACEROUTE</button>
+                  <button class="diag-go-btn btn-secondary" id="btn-mtu-run" onclick="runMtuNow()">CHECK MTU</button>
+                </div>
+              </div>
+
+              <div class="mtu-strip">
+                <span class="k" style="font-size:10.5px;">Path MTU / Jumbo (<b id="mtu-target-lbl">1.1.1.1</b>):</span>
+                <span class="v-cyan mono" id="mtu-status-txt" style="font-size:10.5px;font-weight:700;">Tap CHECK MTU to test 1500B / 9000B Jumbo</span>
+              </div>
+
+              <div class="table-card" style="overflow-y:auto;">
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th style="width:10%">HOP</th>
+                      <th style="width:28%">IP ADDRESS</th>
+                      <th style="width:34%">HOSTNAME</th>
+                      <th style="width:14%">RTT</th>
+                      <th style="width:14%">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trace-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: CLOUDFLARE WAN SPEED & BUFFERBLOAT -->
+            <div class="diag-pane hidden" id="diag-pane-speed">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="speed-iface-chips">
+                  <span class="k" style="font-size:10px;margin-right:2px;">Interface:</span>
+                  <button class="target-chip active" data-s="auto" onclick="selectSpeedIface('auto')">Auto Route</button>
+                  <button class="target-chip" id="btn-spd-eth" data-s="eth" onclick="selectSpeedIface('eth')">ETH (eth0)</button>
+                  <button class="target-chip" data-s="wifi" onclick="selectSpeedIface('wifi')">Wi-Fi (wlan0)</button>
+                </div>
+                <span class="tile-stat v-cyan" id="speed-egress-pill" style="max-width:none;">EGRESS: AUTO</span>
+              </div>
+
+              <div class="cmd-strip">
+                <div class="cmd-strip-info">
+                  <div class="banner-title" id="speed-status-title">Cloudflare Edge WAN Speed &amp; Bufferbloat</div>
+                  <div class="banner-sub" id="speed-status-sub">Measures HTTP DL/UL throughput plus loaded latency spike</div>
+                </div>
+                <button class="diag-go-btn" id="btn-speed-run" onclick="runSpeedTestNow()">RUN SPEED TEST</button>
+              </div>
+
+              <div class="speed-grid">
+                <div class="speed-card">
+                  <div class="speed-lbl">DOWNLOAD THROUGHPUT</div>
+                  <div class="speed-val v-good" id="spd-dl">—</div>
+                  <div class="speed-sub">10 MB Edge Stream</div>
+                </div>
+                <div class="speed-card">
+                  <div class="speed-lbl">UPLOAD THROUGHPUT</div>
+                  <div class="speed-val v-cyan" id="spd-ul">—</div>
+                  <div class="speed-sub">4 MB Edge Stream</div>
+                </div>
+                <div class="speed-card">
+                  <div class="speed-lbl">UNLOADED / LOADED PING</div>
+                  <div class="speed-val" id="spd-lat" style="font-size:21px;">—</div>
+                  <div class="speed-sub">Baseline vs Under Load (1.1.1.1)</div>
+                </div>
+                <div class="speed-card">
+                  <div class="speed-lbl">BUFFERBLOAT GRADE</div>
+                  <div class="speed-val v-warn" id="spd-bloat">—</div>
+                  <div class="speed-sub">Queue Stability Rating (A+ to F)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 4: iPERF3 LAN CLIENT & SERVER -->
+            <div class="diag-pane hidden" id="diag-pane-iperf">
+              <div class="info-card compact-card">
+                <div class="card-hdr-flex" style="margin-bottom:4px;">
+                  <span>SAVED LAN iPERF3 SERVER TARGETS</span>
+                  <button class="mini-btn" onclick="openAddIperfTarget()">+ Add Target</button>
+                </div>
+                <div class="chip-row" id="iperf-target-chips" style="flex-wrap:wrap;"></div>
+              </div>
+
+              <div class="two-col">
+                <div class="info-card">
+                  <div class="card-hdr">iPERF3 CLIENT (WALL PORT → SERVER)</div>
+                  <div class="kv"><span class="k">Target Server</span><span class="v v-cyan" id="ipf-target">192.168.0.1</span></div>
+                  <div class="kv"><span class="k">TX Throughput</span><span class="v v-good" id="ipf-tx">—</span></div>
+                  <div class="kv"><span class="k">RX Throughput</span><span class="v v-cyan" id="ipf-rx">—</span></div>
+                  <div class="kv"><span class="k">Retransmits / State</span><span class="v" id="ipf-status">Ready</span></div>
+                  <button class="diag-go-btn" style="margin-top:6px;width:100%;" id="btn-ipf-client" onclick="runIperfClientNow()">RUN 5s iPERF3 CLIENT</button>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-hdr">LOCAL iPERF3 SERVER DAEMON (:5201)</div>
+                  <div class="kv"><span class="k">Listen Status</span><span class="v" id="ipf-srv-status">Stopped</span></div>
+                  <div class="kv"><span class="k">Test NIC IP</span><span class="v v-cyan" id="ipf-srv-ip">—</span></div>
+                  <div class="kv"><span class="k">Remote CLI</span><span class="v" id="ipf-srv-cli">iperf3 -c —</span></div>
+                  <div class="kv"><span class="k">Protocol / Port</span><span class="v">TCP/UDP 5201</span></div>
+                  <button class="diag-go-btn btn-secondary" style="margin-top:6px;width:100%;" id="btn-ipf-srv" onclick="toggleIperfServerNow()">START LOCAL SERVER</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: SUBNET IP & HOSTNAME SCANNER -->
+          <section class="view" id="view-scan">
+            <div class="cmd-bar">
+              <div class="cmd-strip-info">
+                <span class="banner-title" id="scan-hdr-left">0 DEVICES • SUBNET —</span>
+                <span class="banner-sub" id="scan-hdr-right">Tap any host for 17-port TCP inspect &amp; Wake-on-LAN</span>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-neutral" onclick="nextScanPage()" title="Next Page">
+                  <span id="btn-scan-page-sub">PG 1/1</span> ▾
+                </button>
+                <button class="cmd-btn cmd-primary" onclick="startSubnetScan()">
+                  <span id="btn-scan-title">SWEEP /24</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <table class="data-table scan-table">
+                <thead>
+                  <tr>
+                    <th style="width:19%">IP ADDRESS</th>
+                    <th style="width:27%">DEVICE HOSTNAME</th>
+                    <th style="width:22%">MANUFACTURER</th>
+                    <th style="width:32%">PORTS / INFERRED ROLE</th>
+                  </tr>
+                </thead>
+                <tbody id="scan-tbody"></tbody>
+              </table>
+              <div class="audit-foot" style="display:flex;justify-content:space-between;">
+                <span>Tap any host row to probe 17 TCP ports, HTTP title, mDNS &amp; send Wake-on-LAN</span>
+                <span>ARP + rDNS + NetBIOS</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: WI-FI SITE SURVEY & CHANNEL ANALYZER -->
+          <section class="view" id="view-wifi">
+            <div class="wifi-tabs">
+              <button class="diag-tab active" id="wtab-list" onclick="setWifiTab('list')">NETWORKS</button>
+              <button class="diag-tab" id="wtab-graph" onclick="setWifiTab('graph')">CHANNEL GRAPH</button>
+              <button class="diag-tab" id="wtab-walk" onclick="setWifiTab('walk')">WALK METER</button>
+            </div>
+
+            <div class="banner-card warn hidden" id="wifi-ap-warn">
+              <div style="min-width:0;">
+                <div class="banner-title">Field AP Active on wlan0 (Survey Paused)</div>
+                <div class="banner-sub" id="wifi-ap-warn-sub">Stop JackTrace-AP in SYS → Wi-Fi before scanning nearby Wi-Fi networks</div>
+              </div>
+              <button class="diag-go-btn btn-secondary" onclick="openSysWifiTab()">Wi-Fi Settings ▸</button>
+            </div>
+
+            <!-- SUB-TAB 1: AP TABLE -->
+            <div class="diag-pane" id="wifi-pane-list">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="wifi-band-chips">
+                  <button class="target-chip active" data-b="ALL" onclick="setWifiBandFilter('ALL')">ALL (<span id="wcnt-all">0</span>)</button>
+                  <button class="target-chip" data-b="2.4 GHz" onclick="setWifiBandFilter('2.4 GHz')">2.4G (<span id="wcnt-24">0</span>)</button>
+                  <button class="target-chip" data-b="5 GHz" onclick="setWifiBandFilter('5 GHz')">5G (<span id="wcnt-5">0</span>)</button>
+                  <span class="pill tile-chip" id="wifi-best-ch">Best 2.4G: Ch —</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                  <button class="mini-btn" onclick="openSysWifiTab()">Switch Wi-Fi</button>
+                  <button class="diag-go-btn" id="btn-wifi-scan" onclick="scanWifiNow()">SCAN WI-FI</button>
+                </div>
+              </div>
+
+              <div class="table-card" style="overflow-y:auto;">
+                <table class="data-table compact-table wifi-table">
+                  <thead>
+                    <tr>
+                      <th style="width:31%">SSID / BSSID</th>
+                      <th style="width:17%">CH / WIDTH</th>
+                      <th style="width:20%">SECURITY / GEN</th>
+                      <th style="width:14%">VENDOR</th>
+                      <th style="width:18%">SIGNAL</th>
+                    </tr>
+                  </thead>
+                  <tbody id="wifi-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: CHANNEL OVERLAP GRAPH -->
+            <div class="diag-pane hidden" id="wifi-pane-graph">
+              <div class="diag-ctrl-bar">
+                <div class="chip-row" id="wifi-graph-band-chips">
+                  <button class="target-chip active" data-gb="2.4 GHz" onclick="setWifiGraphBand('2.4 GHz')">2.4 GHz (Ch 1–13)</button>
+                  <button class="target-chip" data-gb="5 GHz" onclick="setWifiGraphBand('5 GHz')">5 GHz (Ch 36–165)</button>
+                  <span class="pill tile-chip" id="wifi-graph-best-ch">Best 2.4G: Ch —</span>
+                </div>
+                <button class="diag-go-btn" id="btn-wifi-rescan" onclick="scanWifiNow()">RE-SCAN</button>
+              </div>
+
+              <div class="spark-card">
+                <div class="card-hdr-flex">
+                  <span id="wifi-graph-hdr-left">2.4 GHz CHANNEL UTILIZATION &amp; OVERLAP</span>
+                  <span class="v-cyan" id="wifi-graph-hdr-right">0 APs</span>
+                </div>
+                <canvas id="wifi-chan-canvas" width="692" height="275"></canvas>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: LIVE SIGNAL WALK METER -->
+            <div class="diag-pane hidden" id="wifi-pane-walk">
+              <div class="diag-ctrl-bar">
+                <div style="min-width:0;flex:1;">
+                  <div class="banner-title" style="font-size:11px;" id="walk-ap-title">Select any AP row to walk-track, or track connected AP</div>
+                  <div class="banner-sub" id="walk-ap-sub">Tap row in Networks or click Track Connected</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                  <button class="diag-go-btn btn-secondary" onclick="walkConnectedWifi()">Track Connected</button>
+                  <button class="diag-go-btn" id="btn-walk-toggle" onclick="toggleWifiWalk()">▶ START WALK</button>
+                </div>
+              </div>
+
+              <div class="diag-stat-row">
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Live Signal</div>
+                  <div class="pdf-stat-val v-good" id="walk-stat-cur">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Min / Max dBm</div>
+                  <div class="pdf-stat-val" id="walk-stat-minmax">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">Average RSSI</div>
+                  <div class="pdf-stat-val v-cyan" id="walk-stat-avg">—</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">PHY Rate (RX/TX)</div>
+                  <div class="pdf-stat-val" id="walk-stat-rate">—</div>
+                </div>
+              </div>
+
+              <div class="spark-card">
+                <div class="card-hdr-flex">
+                  <span id="walk-hdr-left">SIGNAL WALK METER • 60-SAMPLE HISTORY</span>
+                  <span class="v-cyan" id="walk-hdr-right">Idle</span>
+                </div>
+                <canvas id="wifi-walk-canvas" width="692" height="190"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: SECURITY GRADE, L2 FORENSICS & PCAP/TAP -->
+          <section class="view" id="view-sec">
+            <div class="cmd-bar">
+              <div class="seg-tabs">
+                <button class="seg-tab active" id="sectab-grade" onclick="setSecTab('grade')">SECURITY GRADE</button>
+                <button class="seg-tab" id="sectab-forensics" onclick="setSecTab('forensics')">L2 / DHCP</button>
+                <button class="seg-tab" id="sectab-pcap" onclick="setSecTab('pcap')">PCAP &amp; TAP</button>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-primary" onclick="probeSecurity()">
+                  <span id="btn-sec-probe-title">PROBE DHCP</span>
+                </button>
+                <button class="cmd-btn cmd-good" onclick="quickSavePort()">
+                  <span id="sec-save-title">SAVE W-01</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="diag-pane" id="sec-pane-grade">
+              <div class="sec-grid">
+                <div class="info-card sec-left">
+                  <div class="card-hdr">PORT SECURITY GRADE</div>
+                  <div class="grade-banner" id="sec-grade-box">
+                    <div class="grade-big" id="sec-grade">A</div>
+                    <div>
+                      <div class="grade-pts" id="sec-score">96 / 100</div>
+                      <div class="grade-sub" id="sec-summary">Healthy Posture</div>
+                    </div>
+                  </div>
+                  <div class="metric-list" id="sec-metrics"></div>
+                </div>
+
+                <div class="sec-findings" id="sec-findings"></div>
+              </div>
+            </div>
+
+            <div class="diag-pane hidden" id="sec-pane-forensics">
+              <div class="two-col compact-two-col">
+                <div class="info-card compact-card">
+                  <div class="card-hdr">STP / RSTP ROOT BRIDGE</div>
+                  <div class="kv"><span class="k">Protocol / BPDUs</span><span class="v v-cyan" id="for-stp-proto">—</span></div>
+                  <div class="kv"><span class="k">Root Priority / MAC</span><span class="v" id="for-stp-root">—</span></div>
+                  <div class="kv"><span class="k">Path Cost / Port ID</span><span class="v" id="for-stp-cost">—</span></div>
+                </div>
+
+                <div class="info-card compact-card">
+                  <div class="card-hdr">L2 TRAFFIC &amp; IPv6 RA GUARD</div>
+                  <div class="kv"><span class="k">Broadcast / Mcast</span><span class="v" id="for-pps">—</span></div>
+                  <div class="kv"><span class="k">Storm Monitor</span><span class="v v-good" id="for-storm">Normal (&lt;100 pps)</span></div>
+                  <div class="kv"><span class="k">IPv6 RA Guard</span><span class="v" id="for-ra">0 RA Senders</span></div>
+                  <div class="kv"><span class="k">Poison / Cleartext</span><span class="v" id="for-exposure">Clean (0)</span></div>
+                </div>
+              </div>
+
+              <div class="table-card" style="overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span>DHCP OFFER OPTION FORENSICS (OPT 1, 15, 42, 43, 51, 66/150, 67, 252)</span>
+                  <button class="mini-btn" onclick="probeSecurity()">Refresh Probe</button>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>SERVER</th>
+                      <th>MASK / LEASE</th>
+                      <th>DOMAIN / NTP</th>
+                      <th>PXE TFTP / BOOT</th>
+                      <th>OPT 43 / WPAD</th>
+                    </tr>
+                  </thead>
+                  <tbody id="for-dhcp-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: WIRESHARK PCAP & DUAL-NIC INLINE TAP -->
+            <div class="diag-pane hidden" id="sec-pane-pcap">
+              <div class="two-col">
+                <div class="info-card">
+                  <div class="card-hdr">WIRESHARK PACKET CAPTURE (.PCAP)</div>
+                  <div class="kv"><span class="k">Capture Status</span><span class="v v-cyan" id="pcap-pane-status">Idle</span></div>
+                  <div class="kv"><span class="k">Capture NIC</span><span class="v" id="pcap-pane-iface">eth0</span></div>
+                  <div class="kv"><span class="k">Latest File</span><span class="v" id="pcap-pane-file">None recorded</span></div>
+                  <div class="sys-btn-row" style="margin-top:auto;">
+                    <button class="sys-btn" id="btn-pcap-15" onclick="startPcap(15)">15s</button>
+                    <button class="sys-btn" id="btn-pcap-60" onclick="startPcap(60)">60s</button>
+                    <button class="sys-btn" id="btn-pcap-cont" onclick="startPcap(0)">Cont.</button>
+                    <button class="sys-btn sys-danger hidden" id="btn-pcap-stop" onclick="stopPcap()">⏹ Stop</button>
+                    <button class="sys-btn" id="btn-pcap-tailcat" onclick="launchTailcatPcapStream()" title="Stream live packets over encrypted Tailcat tunnel">🦈 Tailcat</button>
+                    <a id="btn-pcap-pane-dl" href="/api/audit/latest.pcap" class="sys-btn kiosk-hide hidden" style="text-align:center;text-decoration:none;">⬇ .PCAP</a>
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-hdr">DUAL-NIC INLINE TAP (br0)</div>
+                  <div class="kv"><span class="k">Bridge Status</span><span class="v v-cyan" id="sec-tap-pkt">Inactive</span></div>
+                  <div class="kv">
+                    <span class="k">Wall Jack Side</span>
+                    <select id="sel-sec-tap-nica" class="job-select"></select>
+                  </div>
+                  <div class="kv">
+                    <span class="k">Client Side</span>
+                    <select id="sel-sec-tap-nicb" class="job-select"></select>
+                  </div>
+                  <div class="banner-sub" id="sec-tap-note" style="white-space:normal;margin-top:2px;">Transparent L2 bridge (LLDP/802.1X passthrough, ip_forward=0)</div>
+                  <div class="sys-btn-row" style="margin-top:auto;">
+                    <button class="sys-btn" id="btn-sec-tap-toggle" onclick="toggleInlineTap('sec')">ENABLE TAP</button>
+                    <button class="sys-btn" onclick="openSysNicsTab()">NICs</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW: WALL PORT AUDIT LOG, SYNC, BT PRINTER & WI-FI PORTAL -->
+          <section class="view" id="view-audit">
+            <div class="cmd-bar">
+              <div class="seg-tabs">
+                <button class="seg-tab active" id="atab-log" onclick="setAuditTab('log')">AUDIT LOG</button>
+                <button class="seg-tab" id="atab-sync" onclick="setAuditTab('sync')">SYNC &amp; NETBOX</button>
+                <button class="seg-tab" id="atab-printer" onclick="setAuditTab('printer')">BT PRINTER</button>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-primary" onclick="quickSavePort()">
+                  <span id="audit-save-title">SAVE W-01</span>
+                </button>
+                <button class="cmd-btn cmd-neutral" onclick="openPdfReport()">PDF REPORT</button>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 1: AUDIT LOG & PORTAL -->
+            <div class="diag-pane" id="audit-pane-log">
+              <div class="audit-grid">
+                <div class="table-card audit-left">
+                  <div class="card-hdr-flex" style="margin-bottom:3px;">
+                    <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+                      <span>JOB:</span>
+                      <select id="sel-audit-job" class="job-select" onchange="switchAuditJob()"></select>
+                      <button class="mini-btn" onclick="openRenameJobKeyboard()" title="Rename Active Job">✎</button>
+                      <button class="mini-btn" onclick="openNewJobKeyboard()" title="Create New Audit Job">+ New</button>
+                      <button class="mini-btn" onclick="deleteActiveAuditJob()" title="Delete Active Job">🗑</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                      <span class="v-cyan" id="audit-next-lbl">NEXT: W-01</span>
+                      <button class="mini-btn" onclick="clearAuditJob()" title="Clear saved drops in current job">Reset</button>
+                    </div>
+                  </div>
+
+                  <div class="prefix-bar" id="audit-prefix-bar">
+                    <span class="k" style="font-size:10px;">Prefix:</span>
+                    <button class="target-chip active" data-p="W" onclick="setDropPrefix('W')">W-</button>
+                    <button class="target-chip" data-p="AP" onclick="setDropPrefix('AP')">AP-</button>
+                    <button class="target-chip" data-p="CAM" onclick="setDropPrefix('CAM')">CAM-</button>
+                    <button class="target-chip" data-p="SW" onclick="setDropPrefix('SW')">SW-</button>
+                    <button class="target-chip" data-p="DESK" onclick="setDropPrefix('DESK')">DESK-</button>
+                  </div>
+
+                  <table class="data-table compact-table">
+                    <thead>
+                      <tr>
+                        <th>DROP</th>
+                        <th>SWITCH / PORT</th>
+                        <th>TDR / CABLE</th>
+                        <th>LINK</th>
+                        <th>STATUS</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="audit-tbody"></tbody>
+                  </table>
+                  <div class="audit-foot" id="audit-foot">0 Saved • Ready to log W-01</div>
+                </div>
+
+                <div class="info-card audit-right">
+                  <div class="card-hdr">PDF, CSV, JSON, PCAP &amp; WI-FI</div>
+                  <div class="qr-row">
+                    <img id="audit-qr" class="qr-img" alt="QR Code" src="">
+                    <div class="qr-meta">
+                      <div class="qr-title">Scan for PDF / CSV Portal</div>
+                      <a id="audit-pdf-link" href="/api/audit/report.pdf" onclick="openPdfReport(); return false;" class="portal-link">/api/audit/report.pdf</a>
+                      <div class="qr-kv">Wi-Fi: <b id="audit-wifi-lbl">—</b></div>
+                      <div class="qr-kv">PCAP: <b id="audit-pcap-lbl">None</b></div>
+                      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:4px;">
+                        <a href="/api/audit/report.csv" class="mini-btn kiosk-hide">⬇ .CSV</a>
+                        <a href="/api/audit/report.json" target="_blank" class="mini-btn kiosk-hide">⬇ .JSON</a>
+                        <a id="btn-dl-pcap" href="/api/audit/latest.pcap" class="mini-btn kiosk-hide hidden">⬇ .PCAP</a>
+                        <button class="mini-btn" onclick="toggleHotspot()" id="btn-hotspot">Field AP</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: WEBHOOK (JSON) / NETBOX SYNC & OFFLINE QUEUE -->
+            <div class="diag-pane hidden" id="audit-pane-sync">
+              <div class="two-col compact-two-col">
+                <div class="info-card compact-card">
+                  <div class="card-hdr-flex" style="margin-bottom:3px;">
+                    <span>WEBHOOK (JSON)</span>
+                    <button class="mini-btn" id="btn-wh-toggle" onclick="toggleWebhookEnabled()">OFF</button>
+                  </div>
+                  <div class="kv">
+                    <span class="k">Endpoint URL</span>
+                    <span class="v v-cyan" id="sync-wh-url" style="max-width:175px;overflow:hidden;text-overflow:ellipsis;">Not set</span>
+                  </div>
+                  <div class="kv">
+                    <span class="k">Bearer Token</span>
+                    <span class="v" id="sync-wh-tok">None</span>
+                  </div>
+                  <div class="sync-btn-row">
+                    <button class="mini-btn" aria-label="Edit Webhook URL" onclick="editWebhookUrl()">✎ URL</button>
+                    <button class="mini-btn" aria-label="Set Webhook Token" onclick="editWebhookToken()">🔑 Token</button>
+                    <button class="mini-btn" aria-label="Clear Webhook Token" onclick="clearWebhookToken()">Clear</button>
+                  </div>
+                </div>
+
+                <div class="info-card compact-card">
+                  <div class="card-hdr-flex" style="margin-bottom:3px;">
+                    <span>NETBOX DCIM API</span>
+                    <div style="display:flex;gap:4px;">
+                      <button class="mini-btn" onclick="testNetboxNow()">Test</button>
+                      <button class="mini-btn" id="btn-nb-toggle" onclick="toggleNetboxEnabled()">OFF</button>
+                    </div>
+                  </div>
+                  <div class="kv">
+                    <span class="k">NetBox URL</span>
+                    <span class="v v-cyan" id="sync-nb-url" style="max-width:175px;overflow:hidden;text-overflow:ellipsis;">Not set</span>
+                  </div>
+                  <div class="kv">
+                    <span class="k">API Token</span>
+                    <span class="v" id="sync-nb-tok">None</span>
+                  </div>
+                  <div class="sync-btn-row">
+                    <button class="mini-btn" aria-label="Edit NetBox URL" onclick="editNetboxUrl()">✎ URL</button>
+                    <button class="mini-btn" aria-label="Set NetBox Token" onclick="editNetboxToken()">🔑 Token</button>
+                    <button class="mini-btn" aria-label="Clear NetBox Token" onclick="clearNetboxToken()">Clear</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-card" style="overflow-y:auto;">
+                <div class="card-hdr-flex" style="margin-bottom:3px;">
+                  <span id="sync-queue-summary">OFFLINE RETRY QUEUE • 0 Pending • 0 Sent • 0 Failed</span>
+                  <div style="display:flex;gap:4px;flex-shrink:0;">
+                    <button class="mini-btn" id="btn-sync-auto" onclick="toggleAutoSync()">Auto-Sync: OFF</button>
+                    <button class="mini-btn" onclick="pushJobToSync()">Push Job</button>
+                    <button class="mini-btn" id="btn-sync-flush" onclick="flushSyncNow()">Flush</button>
+                    <button class="mini-btn" onclick="clearSyncQueueNow()">Clear</button>
+                  </div>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th style="width:16%">TARGET</th>
+                      <th style="width:18%">DROP / JOB</th>
+                      <th style="width:16%">STATUS</th>
+                      <th style="width:50%">ATTEMPTS / RESULT</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sync-queue-tbody"></tbody>
+                </table>
+                <div class="audit-foot" id="sync-last-status">Configure Webhook or NetBox URL to sync wall drops</div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: BLUETOOTH 58mm ESC/POS THERMAL PRINTER -->
+            <div class="diag-pane hidden" id="audit-pane-printer">
+              <div class="prt-grid">
+                <div class="info-card">
+                  <div class="card-hdr-flex" style="margin-bottom:4px;">
+                    <span>BLUETOOTH 58mm ESC/POS</span>
+                    <div style="display:flex;gap:4px;">
+                      <button class="mini-btn" onclick="openManualPrinterMac()">✎ MAC</button>
+                      <button class="mini-btn" id="btn-prt-scan" onclick="scanPrintersNow()">Scan BT</button>
+                    </div>
+                  </div>
+                  <div class="kv" style="margin-bottom:4px;">
+                    <span class="k">Active Printer</span>
+                    <span class="v v-cyan" id="prt-selected-lbl">Not Paired</span>
+                  </div>
+                  <div class="prt-list" id="prt-dev-list"></div>
+                  <div class="sys-btn-row" style="margin-top:auto;">
+                    <button class="sys-btn" id="btn-prt-last" onclick="printLastSavedDrop()">Print Last Drop</button>
+                    <button class="sys-btn active" id="btn-prt-live" onclick="printLiveReceiptNow()">Print Live Port</button>
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-hdr">58mm LABEL / RECEIPT PREVIEW</div>
+                  <pre class="thermal-preview" id="prt-preview">Tap Print Last Drop or Print Live Port to print and preview 58mm ESC/POS output.</pre>
+                  <div class="audit-foot" id="prt-status">Tap Scan BT to find thermal printer</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- PENTEST VIEW 1: CRIMSON COMMAND HUB -->
+          <section class="view" id="view-pt-hub">
+            <div class="live-hero-card pt-hero-card">
+              <button class="live-port-box pt-port-box" onclick="openSysNicsTab()" title="Inspect Active Interface">
+                <span class="live-port-lbl">IFACE</span>
+                <span class="live-port-num" id="pt-hub-iface" style="font-size:18px;">eth0</span>
+              </button>
+              <div class="live-hero-mid" onclick="nav('pt-sniff')">
+                <div class="live-hero-top">
+                  <span class="verdict-chip pt-chip-red" id="pt-hub-badge">PENTEST ACTIVE</span>
+                  <span class="live-proto-meta" id="pt-hub-meta">Authorized mode • Resets on reboot</span>
+                </div>
+                <div class="live-sw-model" id="pt-hub-mac">MAC —</div>
+                <div class="live-sw-sub" id="pt-hub-sub">Switch — · Gateway —</div>
+              </div>
+              <div class="live-hero-acts">
+                <button class="cmd-btn cmd-primary" onclick="openSysRemoteTab()">📡 TAILCAT</button>
+                <button class="cmd-btn cmd-neutral" onclick="setPentestMode(false)">✕ EXIT PENTEST</button>
+              </div>
+            </div>
+
+            <div class="pt-hub-grid">
+              <button class="bench-tile pt-tile" onclick="nav('pt-recon')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker"><span class="tile-icon ic-red">⚡</span><span>ACTIVE RECON</span></span>
+                  <span class="tile-stat" id="pt-tile-recon-badge">SCAN</span>
+                </div>
+                <div class="bench-tile-metric v-red" id="pt-tile-recon-val">0 HOSTS</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="pt-tile-recon-sub">Subnet hosts &amp; exposed ports</div>
+                  <div class="bench-tile-meta">Phase 3: NSE · SMB · TLS · SNMP</div>
+                </div>
+              </button>
+
+              <button class="bench-tile pt-tile" onclick="nav('pt-sniff')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker"><span class="tile-icon ic-red">👁</span><span>PASSIVE SNIFF &amp; STREAM</span></span>
+                  <span class="tile-stat" id="pt-tile-sniff-badge">GUARD</span>
+                </div>
+                <div class="bench-tile-metric" id="pt-tile-sniff-val">0 ALERTS</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="pt-tile-sniff-sub">ARP, Rogue DHCP, IPv6 RA</div>
+                  <div class="bench-tile-meta">Live Tailcat → Wireshark ready</div>
+                </div>
+              </button>
+
+              <button class="bench-tile pt-tile" onclick="nav('pt-nac')">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker"><span class="tile-icon ic-red">🔒</span><span>NAC &amp; INLINE TAP</span></span>
+                  <span class="tile-stat" id="pt-tile-nac-badge">L2</span>
+                </div>
+                <div class="bench-tile-metric" id="pt-tile-nac-val">OPEN</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="pt-tile-nac-sub">802.1X EAPOL &amp; br0 Tap</div>
+                  <div class="bench-tile-meta">Phase 3: MAC Clone / Spoof</div>
+                </div>
+              </button>
+
+              <button class="bench-tile pt-tile" onclick="openSysRemoteTab()">
+                <div class="bench-tile-top">
+                  <span class="bench-tile-kicker"><span class="tile-icon ic-red">📡</span><span>TAILCAT TUNNEL</span></span>
+                  <span class="tile-stat" id="pt-tile-tc-badge">IDLE</span>
+                </div>
+                <div class="bench-tile-metric" id="pt-tile-tc-val">READY</div>
+                <div class="bench-tile-foot">
+                  <div class="bench-tile-sub" id="pt-tile-tc-sub">No-account WireGuard/DERP</div>
+                  <div class="bench-tile-meta" id="pt-tile-tc-meta">Web UI · Live PCAP · SSH · iperf3</div>
+                </div>
+              </button>
+            </div>
+
+            <div class="foot-strip pt-foot-strip">
+              <span>MODE: <b class="v-red">AUTHORIZED PENTEST</b></span>
+              <span>TARGET NIC: <b id="pt-foot-nic">eth0</b></span>
+              <span>GUARDRAIL: <b>RESETS TO STANDARD ON REBOOT</b></span>
+            </div>
+          </section>
+
+          <!-- PENTEST VIEW 2: ACTIVE RECON -->
+          <section class="view" id="view-pt-recon">
+            <div class="cmd-bar">
+              <div class="seg-tabs">
+                <button class="seg-tab active" id="ptrecontab-findings" onclick="setPtReconTab('findings')">FINDINGS</button>
+                <button class="seg-tab" id="ptrecontab-targets" onclick="setPtReconTab('targets')">TARGETS</button>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="target-chip" onclick="editReconTarget()" title="Tap to edit IPv4 or /24 CIDR target">Target: <b id="pt-recon-target-lbl">Auto</b></button>
+                <button class="cmd-btn cmd-primary" id="btn-pt-recon-run" onclick="runPtReconNow()">▶ RUN</button>
+                <button class="cmd-btn cmd-neutral hidden" id="btn-pt-recon-stop" onclick="stopPtReconNow()">⏹ STOP</button>
+                <button class="cmd-btn cmd-neutral" onclick="clearPtReconNow()">CLR</button>
+              </div>
+            </div>
+
+            <div class="banner-card" style="padding:5px 9px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+                <div class="chip-row" style="gap:5px;">
+                  <button class="target-chip active" id="pt-prof-quick_banners" onclick="setReconProfile('quick_banners')">Quick Banners</button>
+                  <button class="target-chip" id="pt-prof-smb_signing" onclick="setReconProfile('smb_signing')">SMB Signing</button>
+                  <button class="target-chip" id="pt-prof-tls_audit" onclick="setReconProfile('tls_audit')">TLS / Certs</button>
+                  <button class="target-chip" id="pt-prof-snmp_defaults" onclick="setReconProfile('snmp_defaults')">SNMP Defaults</button>
+                </div>
+                <span class="stat-micro" id="pt-recon-status">Ready</span>
+              </div>
+            </div>
+
+            <div class="diag-pane" id="pt-recon-pane-findings">
+              <div class="table-card" style="flex:1;min-height:0;overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span>ACTIVE AUDIT FINDINGS</span>
+                  <span id="pt-recon-find-count" class="mono">0 findings</span>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>SEV</th>
+                      <th>HOST:PORT</th>
+                      <th>SVC</th>
+                      <th>FINDING / DETAIL</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-recon-find-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="diag-pane hidden" id="pt-recon-pane-targets">
+              <div class="table-card" style="flex:1;min-height:0;overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span>DISCOVERED TARGETS (TAP TO TARGET · INSPECT)</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span id="pt-recon-count" class="mono">0 hosts</span>
+                    <button class="mini-btn" onclick="startSubnetScan()">↻ Sweep</button>
+                  </div>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>IP ADDRESS</th>
+                      <th>HOSTNAME</th>
+                      <th>VENDOR</th>
+                      <th>ROLE</th>
+                      <th>PORTS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-recon-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- PENTEST VIEW 3: PASSIVE SNIFF & LIVE STREAM -->
+          <section class="view" id="view-pt-sniff">
+            <div class="cmd-bar">
+              <div class="seg-tabs">
+                <button class="seg-tab active" id="ptsnifftab-exp" onclick="setPtSniffTab('exp')">EXPOSURE</button>
+                <button class="seg-tab" id="ptsnifftab-clear" onclick="setPtSniffTab('clear')">CLEARTEXT</button>
+                <button class="seg-tab" id="ptsnifftab-stream" onclick="setPtSniffTab('stream')">STREAM &amp; PCAP</button>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-primary" id="btn-pt-stream-toggle" onclick="togglePtPcapStream()">▶ STREAM</button>
+                <button class="cmd-btn cmd-neutral" onclick="clearSnifferExposure()" title="Clear passive exposure counters">CLR</button>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 1: LLMNR / NBT-NS / WPAD / mDNS EXPOSURE -->
+            <div class="diag-pane" id="pt-sniff-pane-exp">
+              <div class="exp-stat-strip">
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">LLMNR</div>
+                  <div class="pdf-stat-val v-amber" id="pt-exp-llmnr">0</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">NBT-NS</div>
+                  <div class="pdf-stat-val v-amber" id="pt-exp-nbns">0</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">WPAD</div>
+                  <div class="pdf-stat-val v-red" id="pt-exp-wpad">0</div>
+                </div>
+                <div class="pdf-stat-box">
+                  <div class="pdf-stat-lbl">mDNS</div>
+                  <div class="pdf-stat-val v-cyan" id="pt-exp-mdns">0</div>
+                </div>
+              </div>
+
+              <div class="table-card" style="flex:1;min-height:0;overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span>PASSIVE POISON-EXPOSURE TALKERS (ZERO PACKETS SENT)</span>
+                  <span class="mono" id="pt-sniff-nic-lbl">NIC: eth0</span>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>PROTO</th>
+                      <th>SOURCE / VENDOR</th>
+                      <th>QUERY</th>
+                      <th>HITS</th>
+                      <th>RISK</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-exp-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: CLEARTEXT CREDENTIAL & PROTOCOL ALERTS -->
+            <div class="diag-pane hidden" id="pt-sniff-pane-clear">
+              <div class="banner-card" style="padding:5px 9px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;">
+                  <span>ARP: <b id="pt-sniff-arp">0 conflicts</b></span>
+                  <span>DHCP: <b id="pt-sniff-dhcp">Clean</b></span>
+                  <span>IPv6 RA: <b id="pt-sniff-ra">0</b></span>
+                  <span class="tile-stat" id="pt-sniff-grade">GRADE —</span>
+                </div>
+              </div>
+
+              <div class="table-card" style="flex:1;min-height:0;overflow-y:auto;">
+                <div class="card-hdr-flex">
+                  <span>CLEARTEXT AUTH &amp; LEGACY PROTOCOLS (PASSWORDS REDACTED)</span>
+                  <span class="mono" id="pt-clear-count">0 alerts</span>
+                </div>
+                <table class="data-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>SEV</th>
+                      <th>PROTO</th>
+                      <th>FLOW</th>
+                      <th>DETAIL</th>
+                      <th>CNT</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-clear-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: TAILCAT WIRESHARK STREAM & CONTINUOUS PCAP -->
+            <div class="diag-pane hidden" id="pt-sniff-pane-stream">
+              <div class="two-col" style="flex:1;min-height:0;">
+                <div class="info-card">
+                  <div class="card-hdr-flex">
+                    <span>LIVE TAILCAT → WIRESHARK STREAM</span>
+                    <span class="tile-stat" id="pt-sniff-tc-status">Idle</span>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;flex:1;min-height:0;">
+                    <div class="tc-qr-box" style="width:116px;height:116px;">
+                      <img id="pt-sniff-qr" class="hidden" alt="Tailcat PCAP QR">
+                      <span id="pt-sniff-qr-empty" style="font-size:10px;color:#71717a;text-align:center;">Tap STREAM<br>to start tunnel</span>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">
+                      <div class="kv"><span class="k">Stream NIC</span><span class="v v-cyan" id="pt-sniff-cap-iface">eth0</span></div>
+                      <div class="tc-cmd-box mono" id="pt-sniff-cmd">tailcat &lt;addr&gt; | wireshark -k -i -</div>
+                      <div style="margin-top:auto;">
+                        <button class="mini-btn" onclick="openSysRemoteTab()">Open SYS → Remote</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-hdr-flex">
+                    <span>LOCAL .PCAP RECORDER</span>
+                    <span class="tile-stat" id="pt-sniff-local-pcap">Idle</span>
+                  </div>
+                  <div class="kv"><span class="k">Capture File</span><span class="v" id="pt-sniff-pcap-file">None recorded</span></div>
+                  <div class="kv"><span class="k">Safety Cap</span><span class="v">100 MB ring limit</span></div>
+                  <div class="sys-btn-row" style="margin-top:auto;">
+                    <button class="sys-btn" onclick="startPcap(15)">15s</button>
+                    <button class="sys-btn" onclick="startPcap(60)">60s</button>
+                    <button class="sys-btn" onclick="startPcap(0)">Cont.</button>
+                    <button class="sys-btn sys-danger hidden" id="btn-pt-pcap-stop" onclick="stopPcap()">⏹ Stop</button>
+                    <a id="btn-pt-pcap-dl" href="/api/audit/latest.pcap" class="sys-btn kiosk-hide hidden" style="text-align:center;text-decoration:none;">⬇ .PCAP</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- PENTEST VIEW 4: NAC, INLINE TAP & MAC SPOOF -->
+          <section class="view" id="view-pt-nac">
+            <div class="cmd-bar">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="verdict-chip pt-chip-red">NAC / TAP</span>
+                <span class="brand-tag" id="pt-nac-status-top">Inline Bridge &amp; 802.1X</span>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-primary" id="btn-pt-tap-toggle" onclick="togglePtInlineTap()">🔀 ENABLE br0 TAP</button>
+                <button class="cmd-btn cmd-neutral" onclick="openSysNetCalTab()">802.1X PEAP</button>
+              </div>
+            </div>
+
+            <div class="two-col" style="flex:1;min-height:0;">
+              <div class="info-card">
+                <div class="card-hdr">DUAL-NIC INLINE TAP (br0) &amp; 802.1X</div>
+                <div class="kv"><span class="k">Tap Bridge</span><span class="v v-cyan" id="pt-nac-tap">Inactive</span></div>
+                <div class="kv"><span class="k">EAPOL Challenge</span><span class="v" id="pt-nac-eapol">Not Seen</span></div>
+                <div class="kv"><span class="k">Supplicant State</span><span class="v" id="pt-nac-d1x">Idle</span></div>
+                <div class="kv"><span class="k">Native VLAN</span><span class="v" id="pt-nac-vlan">Untagged</span></div>
+                <div class="banner-sub" style="white-space:normal;margin-top:auto;">Bridges Wall Jack ⇄ Client with LLDP &amp; 802.1X EAPOL passthrough and ip_forward=0.</div>
+              </div>
+
+              <div class="info-card">
+                <div class="card-hdr-flex">
+                  <span>INTERFACE IDENTITY &amp; MAC CLONE</span>
+                  <span class="tile-stat" id="pt-nac-spoofed">Original MAC</span>
+                </div>
+                <div class="kv"><span class="k">Active NIC</span><span class="v v-cyan" id="pt-nac-iface">eth0</span></div>
+                <div class="kv"><span class="k">Original Hardware</span><span class="v mono" id="pt-nac-orig-mac">—</span></div>
+                <div class="kv"><span class="k">Current MAC</span><span class="v mono" id="pt-nac-mac">—</span></div>
+                <div class="kv">
+                  <span class="k">Clone Host MAC</span>
+                  <select id="sel-pt-clone-host" class="job-select" style="max-width:175px;"></select>
+                </div>
+                <div class="banner-sub" id="pt-nac-mac-err" style="color:#fda4af;white-space:normal;"></div>
+                <div class="sys-btn-row" style="margin-top:auto;">
+                  <button class="sys-btn" onclick="cloneSelectedHostMac()">🎭 Clone</button>
+                  <button class="sys-btn" onclick="spoofRandomLocalMac()">🎲 Random</button>
+                  <button class="sys-btn" onclick="editCustomSpoofMac()">✎ Custom</button>
+                  <button class="sys-btn sys-danger" id="btn-pt-mac-restore" onclick="restoreOriginalMac()">↩ Restore</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- PENTEST VIEW 5: EXTERNAL USB WI-FI & ROGUE AP -->
+          <section class="view" id="view-pt-wifi">
+            <div class="cmd-bar">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="verdict-chip pt-chip-red">WI-FI+</span>
+                <button class="target-chip" onclick="editWifiWatchSsid()" title="Set target corporate SSID to watch for Evil Twins">Watch: <b id="pt-wifi-watch-lbl">Any SSID</b></button>
+              </div>
+              <div class="cmd-strip-acts">
+                <button class="cmd-btn cmd-primary" onclick="scanWifiNow()">↻ SCAN APs</button>
+                <button class="cmd-btn cmd-neutral" onclick="nav('wifi')">SURVEY</button>
+                <button class="cmd-btn cmd-neutral" onclick="openSysWifiTab()">SYS WI-FI</button>
+              </div>
+            </div>
+
+            <div class="two-col compact-two-col">
+              <div class="info-card compact-card">
+                <div class="card-hdr">USB RADIO &amp; WLAN0</div>
+                <div class="kv"><span class="k">USB Monitor Radio</span><span class="v v-cyan" id="pt-wifi-usb">Not Detected</span></div>
+                <div class="kv"><span class="k">Onboard wlan0</span><span class="v" id="pt-wifi-wlan0">Survey Ready</span></div>
+                <div class="banner-sub" id="pt-wifi-usb-note" style="white-space:normal;">Plug monitor USB Wi-Fi for active capture; wlan0 passive watch active.</div>
+              </div>
+
+              <div class="info-card compact-card">
+                <div class="card-hdr-flex">
+                  <span>ROGUE AP / EVIL TWIN WATCH</span>
+                  <button class="mini-btn" onclick="clearWifiWatchSsid()">Clear Watch</button>
+                </div>
+                <div class="kv"><span class="k">Surveyed APs / Ch</span><span class="v"><span id="pt-wifi-aps">0 APs</span> · <span id="pt-wifi-ch">—</span></span></div>
+                <div class="kv"><span class="k">Rogue / Weak Sec</span><span class="v" id="pt-wifi-rogues">0 rogue · 0 weak</span></div>
+              </div>
+            </div>
+
+            <div class="table-card" style="flex:1;min-height:0;overflow-y:auto;">
+              <div class="card-hdr-flex">
+                <span>ROGUE AP / EVIL TWIN &amp; WEAK SECURITY ALERTS</span>
+                <span class="mono" id="pt-wifi-alert-cnt">0 alerts</span>
+              </div>
+              <table class="data-table compact-table">
+                <thead>
+                  <tr>
+                    <th>SEV</th>
+                    <th>SSID</th>
+                    <th>BSSID / VENDOR</th>
+                    <th>CH / SEC</th>
+                    <th>REASON</th>
+                  </tr>
+                </thead>
+                <tbody id="pt-wifi-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- TAP-A-HOST DEEP DIVE MODAL -->
+      <div class="sys-modal hidden" id="host-modal">
+        <div class="sys-dialog" style="width:620px;gap:9px;">
+          <div class="card-hdr-flex">
+            <span id="hm-title">HOST DEEP DIVE</span>
+            <button class="mini-btn" onclick="closeHostModal()">✕ Close</button>
+          </div>
+          <div class="sys-kv-grid">
+            <div class="kv"><span class="k">Hostname</span><span class="v v-cyan" id="hm-host">—</span></div>
+            <div class="kv"><span class="k">MAC Address</span><span class="v" id="hm-mac">—</span></div>
+            <div class="kv"><span class="k">Manufacturer</span><span class="v" id="hm-vendor">—</span></div>
+            <div class="kv"><span class="k">Role / RTT</span><span class="v v-good" id="hm-role">—</span></div>
+          </div>
+          <div class="sys-section" style="padding-top:7px;">
+            <div class="k" style="font-size:10.5px;margin-bottom:4px;">Open Ports &amp; Service Banners</div>
+            <div class="chip-row" id="hm-ports" style="flex-wrap:wrap;"></div>
+            <div class="kv" style="margin-top:5px;"><span class="k">HTTP Page Title</span><span class="v" id="hm-http">—</span></div>
+            <div class="kv"><span class="k">mDNS / Hints</span><span class="v v-cyan" id="hm-mdns">—</span></div>
+          </div>
+          <div class="sys-btn-row" style="padding-top:4px;">
+            <button class="sys-btn active" id="hm-btn-wol" onclick="sendHostWol()">⚡ Wake-on-LAN</button>
+            <button class="sys-btn" onclick="pingHostFromModal()">Ping Host</button>
+            <button class="sys-btn" onclick="traceHostFromModal()">Traceroute</button>
+            <button class="sys-btn" onclick="rescanHostModal()">Re-Scan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM, WI-FI, IP/CAL, NICs & SAFE POWER MODAL -->
+      <div class="sys-modal hidden" id="sys-modal">
+        <div class="sys-dialog" style="width:654px;max-height:452px;gap:8px;">
+          <div class="card-hdr-flex">
+            <span>JACKTRACE SYSTEM &amp; HARDWARE</span>
+            <button class="mini-btn" onclick="toggleSysModal()">✕ Close</button>
+          </div>
+          <div class="sys-tabs" style="height:28px;">
+            <button class="diag-tab active" id="systab-general" onclick="setSysTab('general')">DISPLAY &amp; POWER</button>
+            <button class="diag-tab" id="systab-wifi" onclick="setSysTab('wifi')">WI-FI</button>
+            <button class="diag-tab" id="systab-netcal" onclick="setSysTab('netcal')">IP &amp; CAL</button>
+            <button class="diag-tab" id="systab-nics" onclick="setSysTab('nics')">NICs &amp; TAP</button>
+            <button class="diag-tab" id="systab-remote" onclick="setSysTab('remote')">REMOTE</button>
+          </div>
+
+          <div id="sys-pane-general" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="sys-kv-grid">
+              <div class="kv"><span class="k">Host / Uptime</span><span class="v" id="sys-host">—</span></div>
+              <div class="kv"><span class="k">Pi 4 CPU Temp</span><span class="v" id="sys-temp">—</span></div>
+              <div class="kv">
+                <span class="k">Wi-Fi (wlan0)</span>
+                <span class="v" style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                  <span id="sys-wlan">—</span>
+                  <button class="mini-btn" style="padding:1px 6px;font-size:9.5px;" onclick="setSysTab('wifi')">Switch</button>
+                </span>
+              </div>
+              <div class="kv"><span class="k">Active Port</span><span class="v" id="sys-eth">—</span></div>
+            </div>
+            <div class="sys-section">
+              <div class="k" style="font-size:10px;margin-bottom:4px;">DSI Screen Brightness</div>
+              <div class="sys-btn-row">
+                <button class="sys-btn" onclick="setBacklight(25)">25%</button>
+                <button class="sys-btn" onclick="setBacklight(50)">50%</button>
+                <button class="sys-btn" onclick="setBacklight(75)">75%</button>
+                <button class="sys-btn" onclick="setBacklight(100)">100%</button>
+              </div>
+            </div>
+            <div class="sys-section">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:4px;">
+                <span class="k" style="font-size:10px;font-weight:400;">DSI Orientation &amp; Read-Only Root (OverlayFS)</span>
+                <span class="v-warn hidden" id="sys-reboot-note" style="font-size:9.5px;">⚠ Reboot Pi to apply</span>
+              </div>
+              <div class="sys-btn-row">
+                <button class="sys-btn" id="btn-ori-normal" onclick="setOrientation(false)">0° Normal</button>
+                <button class="sys-btn" id="btn-ori-flipped" onclick="setOrientation(true)">180° Flipped</button>
+                <button class="sys-btn" id="btn-sys-ro" onclick="toggleOverlayFs()">🛡 RO Root: OFF</button>
+                <button class="sys-btn" id="btn-sys-pentest" onclick="onModePillClick()">🔴 Pentest: OFF</button>
+              </div>
+            </div>
+            <div class="sys-section">
+              <div class="k" style="font-size:10px;margin-bottom:4px;">Safe SD Power Control (Use before unplugging USB-C bank)</div>
+              <div class="sys-btn-row">
+                <button class="sys-btn sys-warn" onclick="powerAction('reboot')">Reboot Pi</button>
+                <button class="sys-btn sys-danger" onclick="powerAction('shutdown')">Safe Shutdown</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="sys-pane-wifi" class="hidden" style="display:flex;flex-direction:column;gap:7px;">
+            <div class="wcli-bar">
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:11.5px;font-weight:800;color:#f4f4f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="wcli-active-lbl">wlan0: Checking...</div>
+                <div style="font-size:9.5px;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="wcli-active-sub">NetworkManager client</div>
+              </div>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button class="mini-btn" id="btn-wcli-scan" onclick="scanWifiClientNow()">Scan</button>
+                <button class="mini-btn" onclick="openHiddenWifiJoin()">+ Hidden</button>
+                <button class="mini-btn" id="btn-wcli-ap" onclick="toggleHotspot()">Field AP</button>
+                <button class="mini-btn" id="btn-wcli-disc" onclick="disconnectWifiNow()">Disconnect</button>
+              </div>
+            </div>
+            <div class="banner-card warn hidden" id="wcli-ap-banner" style="padding:4px 8px;">
+              <div class="banner-sub" style="color:#fde68a;">Field AP (JackTrace-AP) active on wlan0 — joining a network stops Field AP automatically.</div>
+            </div>
+            <div class="wcli-grid">
+              <div class="wcli-col">
+                <div class="card-hdr" style="margin-bottom:4px;">SAVED NETWORKS</div>
+                <div class="wcli-list" id="wcli-saved-list"></div>
+              </div>
+              <div class="wcli-col">
+                <div class="card-hdr" style="margin-bottom:4px;">NEARBY WI-FI (TAP TO JOIN)</div>
+                <div class="wcli-list" id="wcli-avail-list"></div>
+              </div>
+            </div>
+            <div class="audit-foot" id="wcli-status">Ready</div>
+          </div>
+
+          <div id="sys-pane-netcal" class="hidden" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="sys-section" style="border-top:none;padding-top:0;">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:4px;">
+                <span class="k" style="font-size:10.5px;font-weight:700;">Wired Test IPv4 (<b id="sip-iface-lbl">eth0</b>)</span>
+                <span class="tile-stat" id="sip-mode-badge">DHCP (Auto)</span>
+              </div>
+              <div class="sys-kv-grid" style="margin-bottom:5px;">
+                <div class="kv"><span class="k">IP / CIDR</span><span class="v v-cyan" id="sip-cidr">192.168.0.50/24</span></div>
+                <div class="kv"><span class="k">Gateway / DNS</span><span class="v" id="sip-gwdns">—</span></div>
+              </div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button class="mini-btn" onclick="editStaticIpCidr()">✎ IP/CIDR</button>
+                <button class="mini-btn" onclick="editStaticGw()">✎ Gateway</button>
+                <button class="mini-btn" onclick="editStaticDns()">✎ DNS</button>
+                <button class="mini-btn active" onclick="applyStaticIpNow()">Apply Static</button>
+                <button class="mini-btn" onclick="revertDhcpNow()">Use DHCP</button>
+              </div>
+            </div>
+
+            <div class="sys-section">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:4px;">
+                <span class="k" style="font-size:10.5px;font-weight:700;">TDR Cable Jacket &amp; NVP Calibration</span>
+                <span class="v-cyan mono" id="nvp-active-lbl" style="font-size:10px;font-weight:700;">Cat5e (69%)</span>
+              </div>
+              <div class="sys-btn-row">
+                <button class="sys-btn" id="btn-nvp-cat5e" onclick="setTdrPreset('cat5e')">Cat5e (69%)</button>
+                <button class="sys-btn" id="btn-nvp-cat6" onclick="setTdrPreset('cat6')">Cat6 (72%)</button>
+                <button class="sys-btn" id="btn-nvp-cat6a" onclick="setTdrPreset('cat6a')">Cat6A (76%)</button>
+                <button class="sys-btn" onclick="openCustomNvp()">Custom %</button>
+              </div>
+            </div>
+
+            <div class="sys-section">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:4px;">
+                <span class="k" style="font-size:10.5px;font-weight:700;">Wired 802.1X EAP-PEAP Tester</span>
+                <span class="tile-stat" id="d1x-status-badge">Idle</span>
+              </div>
+              <div class="sys-kv-grid" style="margin-bottom:5px;">
+                <div class="kv"><span class="k">Identity</span><span class="v v-cyan" id="d1x-id-lbl">Not set</span></div>
+                <div class="kv"><span class="k">Password</span><span class="v" id="d1x-pw-lbl">Not set</span></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                <div style="display:flex;gap:5px;">
+                  <button class="mini-btn" onclick="editDot1xIdentity()">✎ Identity</button>
+                  <button class="mini-btn" onclick="editDot1xPassword()">🔑 Password</button>
+                  <button class="mini-btn active" id="btn-d1x-start" onclick="startDot1xNow()">▶ Test 802.1X</button>
+                  <button class="mini-btn" id="btn-d1x-stop" onclick="stopDot1xNow()">⏹ Stop</button>
+                </div>
+                <span class="stat-micro" id="d1x-detail-lbl" style="max-width:240px;">Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="sys-pane-nics" class="hidden" style="display:flex;flex-direction:column;gap:9px;">
+            <div class="sys-section" style="border-top:none;padding-top:0;">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:5px;">
+                <span class="k" style="font-size:11px;font-weight:700;">Ethernet Test NICs (1GbE / USB 2.5GbE)</span>
+                <button class="mini-btn" onclick="refreshNicsNow()">Refresh</button>
+              </div>
+              <div class="nic-list" id="sys-nic-list"></div>
+            </div>
+
+            <div class="sys-section">
+              <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:5px;">
+                <span class="k" style="font-size:11px;font-weight:700;">Dual-NIC Transparent Inline Tap (br0 • LLDP &amp; 802.1X)</span>
+                <span class="v-cyan" id="tap-pkt-lbl" style="font-size:10.5px;">Inactive</span>
+              </div>
+              <div class="sys-kv-grid" style="margin-bottom:6px;">
+                <div class="kv">
+                  <span class="k">Wall Jack Side</span>
+                  <select id="sel-tap-nica" class="job-select"></select>
+                </div>
+                <div class="kv">
+                  <span class="k">Client Device Side</span>
+                  <select id="sel-tap-nicb" class="job-select"></select>
+                </div>
+              </div>
+              <div class="banner-sub" id="tap-status-note" style="margin-bottom:6px;white-space:normal;">Bridges Wall Jack ⇄ Client transparently with net.ipv4.ip_forward=0</div>
+              <div class="sys-btn-row">
+                <button class="sys-btn" id="btn-tap-toggle" onclick="toggleInlineTap()">ENABLE INLINE TAP</button>
+                <button class="sys-btn" onclick="openAuditFromTap()">Open PCAP Capture</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="sys-pane-remote" class="hidden" style="display:flex;flex-direction:column;gap:7px;">
+            <div class="card-hdr-flex" style="border:none;padding:0;">
+              <span class="k" style="font-size:10.5px;font-weight:700;">Tailcat Encrypted Tunnel (No Account • Zero Routing Footprint)</span>
+              <span class="tile-stat" id="tc-install-badge">READY</span>
+            </div>
+
+            <div class="sys-btn-row">
+              <button class="sys-btn" id="btn-tc-web" onclick="startTailcat('web_ui')">🌐 Web UI :8080</button>
+              <button class="sys-btn" id="btn-tc-pcap" onclick="startTailcat('pcap_stream')">🦈 Live PCAP</button>
+              <button class="sys-btn" id="btn-tc-iperf" onclick="startTailcat('iperf')">⚡ iperf3 :5201</button>
+              <button class="sys-btn" id="btn-tc-ssh" onclick="startTailcat('ssh')">🔑 SSH (Key)</button>
+              <button class="sys-btn sys-danger" id="btn-tc-stop" onclick="stopTailcat()">⏹ Stop</button>
+            </div>
+
+            <div class="tc-grid">
+              <div class="tc-qr-col">
+                <div class="tc-qr-box">
+                  <img id="tc-qr-img" class="hidden" alt="Tailcat Tunnel QR">
+                  <span id="tc-qr-empty" style="font-size:10px;color:#71717a;text-align:center;">Start a tunnel<br>for QR address</span>
+                </div>
+              </div>
+              <div class="tc-info-col">
+                <div class="sys-kv-grid" style="gap:4px 12px;">
+                  <div class="kv"><span class="k">Status</span><span class="v v-cyan" id="tc-status">Idle</span></div>
+                  <div class="kv"><span class="k">Mode / NIC</span><span class="v" id="tc-mode-iface">—</span></div>
+                </div>
+                <div class="tc-field">
+                  <span class="tc-lbl">TAILCAT ADDRESS</span>
+                  <div class="tc-cmd-box mono" id="tc-addr">—</div>
+                </div>
+                <div class="tc-field">
+                  <span class="tc-lbl">CLIENT COMMAND</span>
+                  <div class="tc-cmd-box mono" id="tc-cmd">—</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:auto;">
+                  <button class="mini-btn kiosk-hide" id="btn-tc-copy" onclick="copyTailcatCmd()">Copy Cmd</button>
+                  <button class="mini-btn active" id="btn-tc-webhook" onclick="pushTailcatWebhook()">📤 Push Address to Webhook</button>
+                  <span class="stat-micro" id="tc-wh-status" style="flex:1;text-align:right;"></span>
+                </div>
+              </div>
+            </div>
+            <div class="audit-foot hidden" id="tc-error-lbl" style="color:#fda4af;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENTEST AUTHORIZATION GATE MODAL -->
+      <div class="sys-modal hidden" id="pentest-gate-modal">
+        <div class="sys-dialog pt-gate-dialog" style="width:460px;gap:10px;">
+          <div class="card-hdr-flex" style="border-bottom:1px solid #7f1d1d;padding-bottom:6px;">
+            <span style="color:#f87171;font-weight:900;letter-spacing:0.8px;">⚠ AUTHORIZED PENTEST MODE</span>
+            <button class="mini-btn" onclick="closePentestGate()">✕ Close</button>
+          </div>
+          <div style="font-size:11.5px;color:#e4e4e7;line-height:1.45;">
+            Pentest Mode switches JackTrace into its red security workbench and unlocks active auditing controls.
+            <br><br>
+            <span style="color:#fca5a5;">Use only on networks you own or have explicit written authorization to test.</span> Pentest Mode always resets to Standard Mode on reboot.
+          </div>
+          <div class="sys-btn-row" style="margin-top:4px;">
+            <button class="sys-btn" onclick="closePentestGate()">Cancel</button>
+            <button class="sys-btn pt-gate-confirm" onclick="confirmEnterPentestMode()">✓ AUTHORIZED — ENTER PENTEST MODE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-APP FLOOR AUDIT PDF VIEWER MODAL -->
+      <div class="pdf-modal hidden" id="pdf-modal">
+        <div class="pdf-topbar">
+          <div class="topbar-left">
+            <button class="cmd-btn cmd-neutral" onclick="closePdfReport()">◄ BACK</button>
+            <span class="brand-tag" id="pdf-modal-title">AUDIT REPORT</span>
+          </div>
+          <div class="topbar-pills">
+            <button class="mini-btn pdf-tab-btn active" id="btn-pdf-tab-sheet" onclick="setPdfTab('sheet')">Touch View</button>
+            <button class="mini-btn pdf-tab-btn" id="btn-pdf-tab-raw" onclick="setPdfTab('raw')">Print PDF</button>
+            <a href="/api/audit/report.pdf" download class="mini-btn kiosk-hide">⬇ Save PDF</a>
+            <button class="cmd-btn cmd-neutral" onclick="closePdfReport()">✕ CLOSE</button>
+          </div>
+        </div>
+        <div class="pdf-sheet-body" id="pdf-sheet-body"></div>
+        <iframe class="pdf-iframe hidden" id="pdf-iframe" title="Audit PDF Preview" src="about:blank"></iframe>
+      </div>
+
+      <!-- ON-SCREEN TOUCH KEYBOARD & IP NUMPAD MODAL -->
+      <div class="kb-modal hidden" id="kb-modal">
+        <div class="kb-topbar">
+          <span class="brand-tag" id="kb-title">TOUCH INPUT</span>
+          <div class="topbar-pills">
+            <button class="mini-btn hidden" id="btn-kb-eye" onclick="kbToggleReveal()">Show</button>
+            <button class="mini-btn" id="btn-kb-mode" onclick="toggleKbLayoutMode()">Mode: QWERTY</button>
+            <button class="cmd-btn cmd-neutral" onclick="closeTouchKeyboard()">✕ CANCEL</button>
+          </div>
+        </div>
+        <div class="kb-display-row">
+          <div class="kb-display" id="kb-display"></div>
+          <button class="kb-action-btn" onclick="kbBackspace()">⌫</button>
+          <button class="kb-action-btn" onclick="kbClear()">CLR</button>
+          <button class="kb-done-btn" onclick="kbSubmit()">✓ DONE</button>
+        </div>
+        <div class="kb-keys" id="kb-keys"></div>
+      </div>
+    </main>
+
+    <!-- Bench Controls Bar (Hidden automatically on 800x480 touchscreen or ?kiosk=1) -->
+    <aside class="bench-bar" id="bench-bar">
+      <div class="bench-group">
+        <label class="bench-lbl">Source:</label>
+        <select id="sel-source" onchange="changeMode()">
+          <option value="live">Live Linux NIC (Pi 4 Hardware)</option>
+          <option value="demo:healthy_1g">Demo: Aruba 2930F 1GbE + PoE+ (24.9m OK)</option>
+          <option value="demo:pair_fault_100m">Demo: Broken Pair D @ 18.4m + Rogue DHCP</option>
+          <option value="demo:nac_8021x_locked">Demo: Juniper EX2300 802.1X Quarantined</option>
+          <option value="demo:unpatched_dead">Demo: Unpatched Wall Socket (28.6m Open)</option>
+        </select>
+      </div>
+
+      <div class="bench-group">
+        <label class="bench-lbl">NIC:</label>
+        <input type="text" id="inp-iface" value="eth0" class="bench-input" title="Linux Ethernet Interface">
+        <button class="bench-btn" onclick="changeMode()">Apply</button>
+      </div>
+
+      <div class="bench-group">
+        <label class="bench-lbl">Blink:</label>
+        <select id="sel-blink-mode">
+          <option value="speed-cycle">Speed Cycle (1G / 100M / Off)</option>
+          <option value="link-pulse">Link Pulse (On / Off)</option>
+        </select>
+      </div>
+
+      <div class="bench-group">
+        <button class="bench-btn" onclick="toggleRawJson()">{ } JSON</button>
+        <button class="bench-btn" onclick="enterKiosk()">⛶ Kiosk 800×480</button>
+      </div>
+    </aside>
+
+    <pre class="json-drawer hidden" id="json-drawer"></pre>
+  </div>
+
+  <script src="/static/app.js?v=5.7"></script>
+</body>
+</html>

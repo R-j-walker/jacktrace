@@ -1,0 +1,23 @@
+[Unit]
+Description=JackTrace 800x480 Touchscreen Wayland Kiosk (Cage + Chromium)
+After=systemd-user-sessions.service pi-nettester.service seatd.service jacktrace-splash-handoff.service
+Wants=pi-nettester.service seatd.service jacktrace-splash-handoff.service
+Conflicts=getty@tty1.service plymouth-quit.service
+
+[Service]
+User=__KIOSK_USER__
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty-fail
+Environment="XDG_SESSION_TYPE=wayland"
+Environment="WLR_LIBINPUT_NO_DEVICES=1"
+Environment="WLR_NO_HARDWARE_CURSORS=1"
+Environment="XCURSOR_THEME=default"
+Environment="XCURSOR_SIZE=24"
+Environment="XCURSOR_PATH=/usr/share/jacktrace-cursors"
+ExecStart=/usr/bin/env XCURSOR_PATH=/usr/share/jacktrace-cursors XCURSOR_THEME=default XCURSOR_SIZE=24 WLR_NO_HARDWARE_CURSORS=1 /usr/bin/cage -s -- /usr/local/bin/jacktrace-kiosk-launch
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target multi-user.target
