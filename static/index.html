@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>JackTrace — Field Network Analyzer</title>
-  <link rel="stylesheet" href="/static/style.css?v=5.8">
+  <link rel="stylesheet" href="/static/style.css?v=5.9">
 </head>
 <body>
   <div class="bench-shell">
@@ -44,6 +44,10 @@
           <button class="rail-btn" id="rail-audit" onclick="nav('audit')" title="Audit Log, PDF Portal, NetBox Sync &amp; BT Printer">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
             <span>LOG</span>
+          </button>
+          <button class="rail-btn" id="rail-serial" onclick="nav('serial')" title="RS-232 / USB Serial Switch Console">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span>CON</span>
           </button>
         </div>
         <div class="rail-group hidden" id="rail-group-pt">
@@ -514,7 +518,7 @@
                   <div class="banner-sub" id="wm-sub">IEEE 802.3 &amp; Broadcom BCM54213PE DSP Integrity</div>
                 </div>
                 <div class="cmd-strip-acts">
-                  <button class="cmd-btn cmd-primary" onclick="runTdrPulse()">
+                  <button class="cmd-btn cmd-primary" id="btn-wm-tdr" onclick="runTdrPulse()">
                     <span>PULSE TDR</span>
                   </button>
                   <button class="cmd-btn cmd-neutral" onclick="resetPhyErrors()">
@@ -1157,6 +1161,45 @@
                   <div class="audit-foot" id="prt-status">Tap Scan BT to find thermal printer</div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <!-- VIEW: RS-232 / USB SERIAL SWITCH CONSOLE -->
+          <section class="view" id="view-serial">
+            <div class="serial-ctrl-bar">
+              <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1;">
+                <select id="sel-serial-port" class="job-select" style="max-width:230px;"></select>
+                <button class="mini-btn" onclick="refreshSerialPorts()" title="Refresh Serial Ports">↻</button>
+                <select id="sel-serial-baud" class="job-select">
+                  <option value="9600" selected>9600</option>
+                  <option value="19200">19200</option>
+                  <option value="38400">38400</option>
+                  <option value="57600">57600</option>
+                  <option value="115200">115200</option>
+                </select>
+                <span class="tile-stat" id="serial-status-lbl">Disconnected</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                <button class="diag-go-btn" id="btn-serial-conn" onclick="toggleSerialConnect()">CONNECT</button>
+                <button class="mini-btn" onclick="serialSendBreak()" title="Send 250ms Break">BREAK</button>
+                <button class="mini-btn" onclick="serialSendCtrlC()" title="Send Ctrl+C">^C</button>
+                <button class="mini-btn" onclick="serialClearTerm()">Clear</button>
+                <button class="mini-btn" onclick="serialDownloadLog()">⬇ .TXT</button>
+              </div>
+            </div>
+
+            <pre id="serial-term" class="serial-term" tabindex="0">Select a serial port (e.g. /dev/ttyS0 or /dev/ttyUSB0) and tap CONNECT.</pre>
+
+            <div class="serial-quick-bar">
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                <button class="target-chip" onclick="serialQuickCmd('')">↵ Enter</button>
+                <button class="target-chip" onclick="serialQuickCmd('show version')">show ver</button>
+                <button class="target-chip" onclick="serialQuickCmd('show int status')">show int</button>
+                <button class="target-chip" onclick="serialQuickCmd('show lldp neighbors')">show lldp</button>
+                <button class="target-chip" onclick="serialQuickCmd('show vlan')">show vlan</button>
+                <button class="mini-btn" onclick="openSerialKeyboard()">⌨ Type Cmd</button>
+              </div>
+              <span class="stat-micro mono" id="serial-counters">RX 0 B · TX 0 B</span>
             </div>
           </section>
 
@@ -1880,6 +1923,6 @@
     <pre class="json-drawer hidden" id="json-drawer"></pre>
   </div>
 
-  <script src="/static/app.js?v=5.8"></script>
+  <script src="/static/app.js?v=5.9"></script>
 </body>
 </html>

@@ -35,6 +35,7 @@ from .models import (
     PoeTelemetry,
     SavedWallPort,
     SecurityReportState,
+    SerialConsoleState,
     SnmpSwitchState,
     StaticIpState,
     StressTestResult,
@@ -58,15 +59,18 @@ from .printer import BluetoothPrinterManager, build_live_receipt, build_wall_dro
 from .probes import probe_l3_connectivity, query_switch_and_vlans, read_link_telemetry, run_line_stress_test
 from .scanner import sweep_subnet
 from .security import evaluate_security_posture, probe_dhcp_servers_sync
+from .serial_console import SerialConsoleManager
 from .sniffer import PassiveL2Sniffer
 from .snmp_client import SnmpSwitchManager
 from .sync_client import SyncManager
 from .system_ctrl import (
+    detect_is_raspberry_pi,
     read_dsi_flipped,
     read_system_health,
     set_dsi_backlight,
     set_dsi_flipped,
     set_overlayfs_enabled,
+    set_wayland_flip,
     trigger_power_action,
 )
 from .tailcat_mgr import TailcatManager
@@ -263,6 +267,16 @@ class PentestModeRequest(BaseModel):
     authorized_ack: bool = False
 
 
+class SerialConnectRequest(BaseModel):
+    port: str
+    baud: int = 9600
+
+
+class SerialSendRequest(BaseModel):
+    data: str
+    append_cr: bool = False
+
+
 class TailcatStartRequest(BaseModel):
     mode: str = "web_ui"
     iface: Optional[str] = None
@@ -339,6 +353,7 @@ class TesterRuntime:
         self.recon_mgr = PentestReconManager(on_change=self.trigger_push)
         self.mac_mgr = MacSpoofManager(on_change=self.trigger_push)
         self.wifi_audit_mgr = WifiAuditManager(on_change=self.trigger_push)
+        self.serial_mgr = SerialConsoleManager(on_change=self.trigger_push)
         self._last_nic_poll_ts: float = 0.0
         self._cached_hw_nics: NetworkHardwareState = self.nic_tap.build_state(
             self.iface, demo_mode=self.demo_mode
@@ -363,6 +378,16 @@ class TesterRuntime:
             active_iface=self.iface,
             demo_mode=self.demo_mode,
         )
+        if not self.demo_mode and not sys_init.capabilities.supports_tdr:
+            self.tdr_state = TdrReportState(
+                running=False,
+                supported=False,
+                method="Software Link/PHY",
+                cable_type=self.tdr_cable_type,
+                nvp_pct=self.tdr_nvp_pct,
+                overall_verdict="NOT_RUN",
+                summary=f"Hardware TDR not supported on {self.iface} — use Wiremap & 20-Pkt Stress",
+            )
         self.latest_snapshot: TesterSnapshot = build_demo_snapshot(
             self.demo_scenario,
             self.blinker.state(),
@@ -390,6 +415,7 @@ class TesterRuntime:
             self.latest_snapshot.wifi,
         )
         self.latest_snapshot.tailcat = self.tailcat_mgr.snapshot(demo_mode=self.demo_mode)
+        self.latest_snapshot.serial = self.serial_mgr.snapshot(demo_mode=self.demo_mode, refresh_ports=True)
 
     def build_pentest_state(
         self,
@@ -474,6 +500,21 @@ class TesterRuntime:
             self.iface,
             self.demo_mode,
         )
+        if (
+            not self.demo_mode
+            and not sys_state.capabilities.supports_tdr
+            and self.tdr_state.overall_verdict == "NOT_RUN"
+            and not self.tdr_state.running
+        ):
+            self.tdr_state = TdrReportState(
+                running=False,
+                supported=False,
+                method="Software Link/PHY",
+                cable_type=self.tdr_cable_type,
+                nvp_pct=self.tdr_nvp_pct,
+                overall_verdict="NOT_RUN",
+                summary=f"Hardware TDR not supported on {self.iface} — use Wiremap & 20-Pkt Stress",
+            )
         wifi_state = self.wifi_mgr.snapshot(demo_mode=self.demo_mode)
         vp_state = self.vlan_prober.snapshot()
         snmp_state = self.snmp_mgr.snapshot()
@@ -513,6 +554,7 @@ class TesterRuntime:
                 snap.wifi,
             )
             snap.tailcat = self.tailcat_mgr.snapshot(demo_mode=True)
+            snap.serial = self.serial_mgr.snapshot(demo_mode=True)
             self.latest_snapshot = snap
             return snap
 
@@ -543,6 +585,7 @@ class TesterRuntime:
                         wifi_state,
                     ),
                     "tailcat": self.tailcat_mgr.snapshot(demo_mode=False),
+                    "serial": self.serial_mgr.snapshot(demo_mode=False),
                 }
             )
             self.latest_snapshot = frozen
@@ -758,6 +801,7 @@ class TesterRuntime:
             dot1x=self.dot1x_mgr.snapshot(),
             pentest=self.build_pentest_state(link.mac_address, sec_state.forensics.exposure, wifi_state),
             tailcat=self.tailcat_mgr.snapshot(demo_mode=False),
+            serial=self.serial_mgr.snapshot(demo_mode=False),
         )
 
         if (
@@ -888,6 +932,7 @@ runtime = TesterRuntime()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    runtime.serial_mgr.set_event_loop(asyncio.get_running_loop())
     if not runtime.demo_mode:
         runtime.sniffer.start()
 
@@ -934,6 +979,7 @@ async def lifespan(_app: FastAPI):
         runtime.diag.shutdown()
         runtime.wifi_mgr.shutdown()
         runtime.nic_tap.shutdown()
+        runtime.serial_mgr.shutdown()
 
 
 app = FastAPI(
@@ -1582,12 +1628,20 @@ async def api_download_json():
 
 @app.post("/api/system/orientation", response_model=TesterSnapshot)
 async def api_system_orientation(req: OrientationRequest):
-    if os.name != "nt":
-        ok, msg = await asyncio.to_thread(set_dsi_flipped, req.flipped)
-        if not ok:
-            raise HTTPException(status_code=500, detail=msg)
+    if os.name != "nt" and not runtime.demo_mode:
+        if detect_is_raspberry_pi():
+            ok, msg = await asyncio.to_thread(set_dsi_flipped, req.flipped)
+            if not ok:
+                raise HTTPException(status_code=500, detail=msg)
+            runtime._orientation_reboot_required = True
+        else:
+            ok, msg = await asyncio.to_thread(set_wayland_flip, req.flipped)
+            if not ok:
+                raise HTTPException(status_code=500, detail=msg)
+            runtime._orientation_reboot_required = False
+    else:
+        runtime._orientation_reboot_required = True
     runtime.screen_flipped = bool(req.flipped)
-    runtime._orientation_reboot_required = True
     snap = await runtime.collect_snapshot()
     await runtime.broadcast(snap)
     return snap
@@ -2118,6 +2172,120 @@ async def api_tailcat_webhook():
     snap = await runtime.collect_snapshot()
     await runtime.broadcast(snap)
     return snap
+
+
+@app.get("/api/serial/ports", response_model=SerialConsoleState)
+async def api_serial_ports():
+    return await asyncio.to_thread(
+        runtime.serial_mgr.snapshot,
+        demo_mode=runtime.demo_mode,
+        refresh_ports=True,
+    )
+
+
+@app.post("/api/serial/connect", response_model=TesterSnapshot)
+async def api_serial_connect(req: SerialConnectRequest):
+    try:
+        await asyncio.to_thread(
+            runtime.serial_mgr.connect,
+            req.port,
+            req.baud,
+            runtime.demo_mode,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    snap = await runtime.collect_snapshot()
+    await runtime.broadcast(snap)
+    return snap
+
+
+@app.post("/api/serial/disconnect", response_model=TesterSnapshot)
+async def api_serial_disconnect():
+    await asyncio.to_thread(runtime.serial_mgr.disconnect)
+    snap = await runtime.collect_snapshot()
+    await runtime.broadcast(snap)
+    return snap
+
+
+@app.post("/api/serial/send")
+async def api_serial_send(req: SerialSendRequest):
+    try:
+        await asyncio.to_thread(runtime.serial_mgr.send, req.data, req.append_cr)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True}
+
+
+@app.post("/api/serial/break")
+async def api_serial_break():
+    try:
+        await asyncio.to_thread(runtime.serial_mgr.send_break)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True}
+
+
+@app.post("/api/serial/clear", response_model=TesterSnapshot)
+async def api_serial_clear():
+    await asyncio.to_thread(runtime.serial_mgr.clear_buffer)
+    snap = await runtime.collect_snapshot()
+    await runtime.broadcast(snap)
+    return snap
+
+
+@app.websocket("/ws/serial")
+async def websocket_serial(ws: WebSocket):
+    await ws.accept()
+    runtime.serial_mgr.set_event_loop(asyncio.get_running_loop())
+    q = runtime.serial_mgr.subscribe()
+    try:
+        init_st = runtime.serial_mgr.snapshot(demo_mode=runtime.demo_mode)
+        if init_st.recent_output:
+            await ws.send_json({"type": "init", "data": init_st.recent_output})
+
+        async def _tx_reader():
+            while True:
+                msg = await ws.receive_json()
+                mtype = msg.get("type")
+                if mtype == "tx":
+                    data = str(msg.get("data", ""))
+                    if data:
+                        try:
+                            await asyncio.to_thread(runtime.serial_mgr.send, data, False)
+                        except RuntimeError:
+                            pass
+                elif mtype == "break":
+                    try:
+                        await asyncio.to_thread(runtime.serial_mgr.send_break)
+                    except RuntimeError:
+                        pass
+
+        async def _rx_writer():
+            while True:
+                ev = await q.get()
+                await ws.send_json(ev)
+
+        tx_task = asyncio.create_task(_tx_reader())
+        rx_task = asyncio.create_task(_rx_writer())
+        done, pending = await asyncio.wait(
+            [tx_task, rx_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for t in pending:
+            t.cancel()
+        for t in done:
+            try:
+                t.result()
+            except WebSocketDisconnect:
+                pass
+            except Exception:
+                pass
+    except WebSocketDisconnect:
+        pass
+    finally:
+        runtime.serial_mgr.unsubscribe(q)
 
 
 @app.websocket("/ws")

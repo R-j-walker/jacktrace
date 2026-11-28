@@ -84,6 +84,55 @@ def _run_nmcli(args: list[str], timeout: float = 8.0) -> Tuple[int, str]:
     return 1, "nmcli permission denied"
 
 
+def _is_nm_unmanaged_error(msg: str) -> bool:
+    low = (msg or "").lower()
+    return any(
+        tok in low
+        for tok in (
+            "unmanaged",
+            "not managed",
+            "not installed",
+            "no active connection",
+            "not running",
+            "could not find connection",
+        )
+    )
+
+
+def _apply_static_iproute2(
+    iface: str,
+    ip_cidr: str,
+    gateway: str = "",
+    dns: str = "",
+) -> Tuple[bool, str]:
+    rc, msg = _run_nmcli(["ip", "-4", "addr", "flush", "dev", iface])
+    if rc != 0:
+        return False, msg or f"ip addr flush failed ({rc})"
+    rc, msg = _run_nmcli(["ip", "addr", "add", ip_cidr, "dev", iface])
+    if rc != 0:
+        return False, msg or f"ip addr add failed ({rc})"
+    _run_nmcli(["ip", "link", "set", "dev", iface, "up"])
+    if gateway:
+        rc_gw, msg_gw = _run_nmcli(["ip", "route", "replace", "default", "via", gateway, "dev", iface])
+        if rc_gw != 0:
+            return False, msg_gw or f"ip route replace failed ({rc_gw})"
+    if dns:
+        _run_nmcli(["resolvectl", "dns", iface, dns], timeout=3.0)
+    return True, f"Static {ip_cidr} (iproute2)"
+
+
+def _revert_dhcp_iproute2(iface: str) -> Tuple[bool, str]:
+    _run_nmcli(["ip", "-4", "addr", "flush", "dev", iface])
+    _run_nmcli(["ip", "link", "set", "dev", iface, "up"])
+    for cmd in (["dhclient", "-1", iface], ["dhcpcd", "-n", iface]):
+        rc, msg = _run_nmcli(cmd, timeout=10.0)
+        if rc == 0:
+            return True, "DHCP (iproute2)"
+        if rc != 127:
+            return False, msg or f"{cmd[0]} failed ({rc})"
+    return True, "DHCP flushed (reconnect cable or restart networking)"
+
+
 class StaticIpv4Manager:
     """Manages temporary non-persistent Static IPv4 overrides on the active wired NIC."""
 
@@ -133,16 +182,32 @@ class StaticIpv4Manager:
             clean_dns,
         ]
         rc, msg = _run_nmcli(cmd)
+        status_txt = f"Static {clean_cidr}"
         if rc != 0:
-            self.state = self.state.model_copy(
-                update={
-                    "iface": clean_if,
-                    "error": msg or f"nmcli modify failed ({rc})",
-                    "status": "Static Apply Failed",
-                }
-            )
-            self._on_change()
-            raise RuntimeError(self.state.error)
+            if _is_nm_unmanaged_error(msg):
+                ok_fb, msg_fb = _apply_static_iproute2(clean_if, clean_cidr, clean_gw, clean_dns)
+                if ok_fb:
+                    status_txt = msg_fb
+                else:
+                    self.state = self.state.model_copy(
+                        update={
+                            "iface": clean_if,
+                            "error": msg_fb or msg or f"Static apply failed ({rc})",
+                            "status": "Static Apply Failed",
+                        }
+                    )
+                    self._on_change()
+                    raise RuntimeError(self.state.error)
+            else:
+                self.state = self.state.model_copy(
+                    update={
+                        "iface": clean_if,
+                        "error": msg or f"nmcli modify failed ({rc})",
+                        "status": "Static Apply Failed",
+                    }
+                )
+                self._on_change()
+                raise RuntimeError(self.state.error)
 
         self.state = StaticIpState(
             iface=clean_if,
@@ -150,7 +215,7 @@ class StaticIpv4Manager:
             ip_cidr=clean_cidr,
             gateway=clean_gw,
             dns=clean_dns,
-            status=f"Static {clean_cidr}",
+            status=status_txt,
             error="",
         )
         self._on_change()
@@ -188,8 +253,19 @@ class StaticIpv4Manager:
                 "",
             ]
         )
-        _run_nmcli(["nmcli", "dev", "reapply", clean_if], timeout=6.0)
-        if rc != 0:
+        if rc == 0:
+            _run_nmcli(["nmcli", "dev", "reapply", clean_if], timeout=6.0)
+            status_txt = "DHCP (Auto)"
+        elif _is_nm_unmanaged_error(msg):
+            ok_fb, msg_fb = _revert_dhcp_iproute2(clean_if)
+            if not ok_fb:
+                self.state = self.state.model_copy(
+                    update={"iface": clean_if, "error": msg_fb or msg or f"DHCP revert failed ({rc})"}
+                )
+                self._on_change()
+                raise RuntimeError(self.state.error)
+            status_txt = msg_fb
+        else:
             self.state = self.state.model_copy(
                 update={"iface": clean_if, "error": msg or f"DHCP revert failed ({rc})"}
             )
@@ -202,7 +278,7 @@ class StaticIpv4Manager:
             ip_cidr="",
             gateway="",
             dns="",
-            status="DHCP (Auto)",
+            status=status_txt,
             error="",
         )
         self._on_change()

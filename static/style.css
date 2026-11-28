@@ -90,6 +90,31 @@ body.app-mode .json-drawer {
 }
 
 @media (min-width: 900px) {
+  body.app-mode .nav-rail {
+    width: 66px;
+  }
+  body.app-mode .rail-btn {
+    height: 52px;
+    font-size: 9px;
+  }
+  body.app-mode .topbar {
+    height: 38px;
+    padding: 0 14px;
+  }
+  body.app-mode .stage-body {
+    padding: 12px 14px;
+  }
+  body.app-mode .bench-tile-metric {
+    font-size: 22px;
+  }
+  body.app-mode .data-table th,
+  body.app-mode .data-table td {
+    font-size: 11.5px;
+    padding: 6px 8px;
+  }
+  body.app-mode .tdr-row {
+    padding: 8px 10px;
+  }
   body.app-mode .sys-dialog {
     width: min(780px, 92vw) !important;
     max-height: min(560px, 90vh) !important;
@@ -133,7 +158,7 @@ body.app-mode .json-drawer {
 
 .rail-btn {
   width: 100%;
-  height: 51px;
+  height: 46px;
   background: transparent;
   border: none;
   color: #8b909a;
@@ -141,7 +166,7 @@ body.app-mode .json-drawer {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
   position: relative;
   font-size: 8.5px;
@@ -172,7 +197,7 @@ body.app-mode .json-drawer {
 }
 
 .rail-sys {
-  height: 46px;
+  height: 42px;
   border-top: 1px solid #252830;
   margin-top: auto;
 }
@@ -1975,4 +2000,42 @@ body.pentest-mode .target-chip.active {
   background: #dc2626;
   border-color: #f87171;
   color: #ffffff;
+}
+
+/* ==================== SERIAL CONSOLE TERMINAL ==================== */
+.serial-ctrl-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.serial-term {
+  flex: 1;
+  min-height: 0;
+  background: #090b0e;
+  border: 1px solid #2b2e36;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-family: Consolas, 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  font-size: 11.5px;
+  line-height: 1.38;
+  color: #4ade80;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  user-select: text;
+}
+.serial-term:focus {
+  border-color: #f59e0b;
+}
+.serial-quick-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }

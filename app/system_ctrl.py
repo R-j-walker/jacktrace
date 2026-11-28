@@ -133,6 +133,79 @@ def _read_nic_driver_name(iface: str) -> str:
         return ""
 
 
+def _find_wayland_session() -> Optional[Tuple[str, str, str]]:
+    """Locate an active Wayland socket under /run/user/<uid>/wayland-0 and return (username, runtime_dir, display)."""
+    run_user = Path("/run/user")
+    if not run_user.is_dir():
+        return None
+    try:
+        for entry in sorted(run_user.iterdir()):
+            sock = entry / "wayland-0"
+            if not sock.exists():
+                continue
+            try:
+                uid = int(entry.name)
+            except ValueError:
+                continue
+            username = ""
+            try:
+                import pwd
+                username = pwd.getpwuid(uid).pw_name
+            except Exception:
+                pass
+            return username, str(entry), "wayland-0"
+    except OSError:
+        pass
+    return None
+
+
+def set_wayland_flip(
+    flipped: bool,
+    output: str = "DSI-1",
+    scale: str = "1.5",
+) -> Tuple[bool, str]:
+    """Rotate active Wayland kiosk output live via wlr-randr (270 normal landscape, 90 flipped tablet mode)."""
+    if os.name == "nt":
+        return False, "Live Wayland rotation requires Linux"
+    wlr = shutil.which("wlr-randr")
+    if not wlr:
+        return False, "wlr-randr not installed"
+    sess = _find_wayland_session()
+    if not sess:
+        return False, "No active Wayland session found"
+    username, runtime_dir, display = sess
+    transform = "90" if flipped else "270"
+    base_cmd = [
+        "env",
+        f"XDG_RUNTIME_DIR={runtime_dir}",
+        f"WAYLAND_DISPLAY={display}",
+        wlr,
+        "--output",
+        output,
+        "--transform",
+        transform,
+        "--scale",
+        scale,
+    ]
+    cmds = [base_cmd]
+    if username and hasattr(os, "geteuid") and os.geteuid() == 0:
+        cmds = [["sudo", "-n", "-u", username, *base_cmd]]
+    elif username:
+        cmds.append(["sudo", "-n", "-u", username, *base_cmd])
+
+    last_err = "wlr-randr failed"
+    for cmd in cmds:
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=4.0, check=False)
+            if proc.returncode == 0:
+                lbl = "180° Flipped" if flipped else "0° Normal"
+                return True, f"Display rotated live to {lbl} (transform {transform})"
+            last_err = (proc.stderr or proc.stdout or f"exit {proc.returncode}").strip()
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
+            last_err = str(exc)
+    return False, last_err[:120]
+
+
 def detect_platform_capabilities(
     active_iface: str = "eth0",
     demo_mode: bool = False,
@@ -148,6 +221,7 @@ def detect_platform_capabilities(
             has_battery=(battery_pct is not None),
             supports_backlight=True,
             supports_dsi_flip=True,
+            supports_live_flip=False,
             supports_overlayfs=True,
             supports_tdr=True,
         )
@@ -158,6 +232,7 @@ def detect_platform_capabilities(
 
     bl_ok = _find_backlight_dir() is not None
     dsi_flip_ok = is_pi and DEFAULT_CMDLINE_PATH.is_file()
+    live_flip_ok = (not is_pi) and (shutil.which("wlr-randr") is not None) and (_find_wayland_session() is not None)
     overlay_ok = is_pi and (shutil.which("raspi-config") is not None)
 
     drv = _read_nic_driver_name(active_iface)
@@ -170,6 +245,7 @@ def detect_platform_capabilities(
         has_battery=(battery_pct is not None),
         supports_backlight=bl_ok,
         supports_dsi_flip=dsi_flip_ok,
+        supports_live_flip=live_flip_ok,
         supports_overlayfs=overlay_ok,
         supports_tdr=supports_tdr,
     )

@@ -117,8 +117,14 @@ EOF
 systemctl enable lldpd
 systemctl restart lldpd
 
-echo "==> [3/6] Enforcing ip_forward=0 & disabling wait-online boot stalls..."
+echo "==> [3/6] Enforcing ip_forward=0, NetworkManager wired management & fast boot..."
 sysctl -w net.ipv4.ip_forward=0 >/dev/null || true
+mkdir -p /etc/NetworkManager/conf.d
+cat >/etc/NetworkManager/conf.d/99-jacktrace-managed.conf <<'EOF'
+[ifupdown]
+managed=true
+EOF
+systemctl reload NetworkManager 2>/dev/null || systemctl restart NetworkManager 2>/dev/null || true
 systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 systemctl disable systemd-networkd-wait-online.service 2>/dev/null || true
 

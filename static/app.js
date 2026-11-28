@@ -1,7 +1,9 @@
 let latestSnap = null;
 let currentView = 'home';
 let scanPage = 0;
-const SCAN_PAGE_SIZE = 6;
+function getScanPageSize() {
+  return (document.body.classList.contains('app-mode') && window.innerHeight >= 650) ? 12 : 6;
+}
 let ws = null;
 
 // Milestone 1 + Milestone 2 + Milestone 3 UI state
@@ -63,7 +65,7 @@ function esc(s) {
 function nav(viewId) {
   currentView = viewId;
   const allViews = [
-    'home', 'autotest', 'sw', 'link', 'diag', 'scan', 'wifi', 'sec', 'audit',
+    'home', 'autotest', 'sw', 'link', 'diag', 'scan', 'wifi', 'sec', 'audit', 'serial',
     'pt-hub', 'pt-recon', 'pt-sniff', 'pt-nac', 'pt-wifi'
   ];
   allViews.forEach(v => {
@@ -80,6 +82,7 @@ function nav(viewId) {
     wifi: 'rail-wifi',
     sec: 'rail-sec',
     audit: pentestUiActive ? 'rail-pt-log' : 'rail-audit',
+    serial: 'rail-serial',
     'pt-hub': 'rail-pt-hub',
     'pt-recon': 'rail-pt-recon',
     'pt-sniff': 'rail-pt-sniff',
@@ -87,7 +90,7 @@ function nav(viewId) {
     'pt-wifi': 'rail-pt-wifi'
   };
   [
-    'rail-home', 'rail-sw', 'rail-link', 'rail-diag', 'rail-scan', 'rail-wifi', 'rail-sec', 'rail-audit',
+    'rail-home', 'rail-sw', 'rail-link', 'rail-diag', 'rail-scan', 'rail-wifi', 'rail-sec', 'rail-audit', 'rail-serial',
     'rail-pt-hub', 'rail-pt-recon', 'rail-pt-sniff', 'rail-pt-nac', 'rail-pt-wifi', 'rail-pt-log'
   ].forEach(id => {
     const r = document.getElementById(id);
@@ -103,6 +106,7 @@ function nav(viewId) {
     wifi: 'WI-FI SITE SURVEY',
     sec: 'SECURITY, L2 & CAPTURE',
     audit: 'AUDIT LOG & REPORTS',
+    serial: 'SERIAL SWITCH CONSOLE',
     'pt-hub': 'PENTEST COMMAND HUB',
     'pt-recon': 'ACTIVE RECON & PROFILES',
     'pt-sniff': 'PASSIVE SNIFF & STREAM',
@@ -110,6 +114,14 @@ function nav(viewId) {
     'pt-wifi': 'EXTERNAL WI-FI & ROGUE AP'
   };
   document.getElementById('top-title').textContent = titles[viewId] || 'JACKTRACE';
+  if (viewId === 'serial') {
+    connectSerialWs();
+    refreshSerialPorts();
+    requestAnimationFrame(() => {
+      const term = document.getElementById('serial-term');
+      if (term) term.scrollTop = term.scrollHeight;
+    });
+  }
   if (viewId === 'diag' && latestSnap && latestSnap.diagnostics) {
     requestAnimationFrame(() => renderPingCanvas(latestSnap.diagnostics.ping));
   }
@@ -261,6 +273,7 @@ function renderTdrSection(s) {
   const pBanner = document.getElementById('pair-banner');
   const pChip = document.getElementById('pair-chip');
 
+  const tdrSupported = tdr.supported !== false && (!s.system || !s.system.capabilities || s.system.capabilities.supports_tdr !== false);
   const hasTdr = tdr.pairs && tdr.pairs.length === 4;
   if (hasTdr) {
     document.getElementById('pair-banner-title').textContent = tdr.summary;
@@ -272,17 +285,20 @@ function renderTdrSection(s) {
     setVerdictClass(pChip, tdr.overall_verdict);
   } else {
     document.getElementById('pair-banner-title').textContent = link.pair_diagnostic_note;
-    document.getElementById('pair-banner-sub').textContent =
-      `Tap PULSE HARDWARE TDR below to measure all 4 pairs (works on dead or live sockets)`;
+    document.getElementById('pair-banner-sub').textContent = tdrSupported
+      ? 'Tap PULSE HARDWARE TDR below to measure all 4 pairs (works on dead or live sockets)'
+      : (tdr.summary || `Hardware TDR unsupported on ${link.iface} — showing active link speed & 20-Pkt Stress`);
     pBanner.classList.toggle('warn', link.pair_downshift_suspected);
     const lv = !link.carrier_up ? 'UNPROBED' : (link.pair_downshift_suspected ? 'WARN' : 'PASS');
     pChip.textContent = lv;
     setVerdictClass(pChip, lv === 'UNPROBED' ? 'WARN' : lv);
   }
 
-  document.getElementById('btn-tdr-title').textContent = tdr.running
-    ? 'PULSING...'
-    : 'PULSE TDR';
+  const btnTdr = document.getElementById('btn-tdr');
+  if (btnTdr) btnTdr.disabled = !tdrSupported;
+  document.getElementById('btn-tdr-title').textContent = !tdrSupported
+    ? 'NO HW TDR'
+    : (tdr.running ? 'PULSING...' : 'PULSE TDR');
 
   const swatches = ['sw-ora', 'sw-grn', 'sw-blu', 'sw-brn'];
   const defaultSpecs = [
@@ -338,14 +354,15 @@ function renderTdrSection(s) {
     } else {
       if (!link.carrier_up) {
         pct = 0;
-        barTxt = 'Tap PULSE HARDWARE TDR to measure dead cable';
+        barTxt = tdrSupported ? 'Tap PULSE HARDWARE TDR to measure dead cable' : 'No carrier detected on Ethernet port';
         statTxt = 'NO CARRIER';
         statCol = '';
       } else if (link.speed_mbps >= 1000) {
         pct = 100;
-        barTxt = link.speed_mbps >= 2500
-          ? `Active ${(link.speed_mbps / 1000).toFixed(1)}GBASE-T (Pulse TDR for length)`
-          : 'Active 1000BASE-T (Pulse TDR for length)';
+        const spdLbl = link.speed_mbps >= 2500 ? `${(link.speed_mbps / 1000).toFixed(1)}GBASE-T` : '1000BASE-T';
+        barTxt = tdrSupported
+          ? `Active ${spdLbl} (Pulse TDR for length)`
+          : `Active ${spdLbl} (4 pairs verified)`;
         statTxt = link.speed_mbps >= 2500 ? `${(link.speed_mbps / 1000).toFixed(1)}G ACTIVE` : '1G ACTIVE';
         statCol = 'v-good';
       } else if (link.speed_mbps === 100 && idx < 2) {
@@ -414,11 +431,14 @@ function renderWiremapSection(s) {
   const subEl = document.getElementById('wm-sub');
   if (!banner || !chip || !titleEl || !subEl) return;
 
+  const tdrSupported = tdr.supported !== false && (!s.system || !s.system.capabilities || s.system.capabilities.supports_tdr !== false);
+  const btnWmTdr = document.getElementById('btn-wm-tdr');
+  if (btnWmTdr) btnWmTdr.classList.toggle('hidden', !tdrSupported);
   banner.classList.toggle('warn', verdict === 'FAIL' || verdict === 'WARN');
   chip.textContent = verdict;
   setVerdictClass(chip, verdict);
   titleEl.textContent = pw.summary || 'Waiting for link or TDR pulse';
-  const phySub = pw.phy_name && pw.phy_name !== '—' ? pw.phy_name : 'IEEE / ethtool PHY';
+  const phySub = pw.phy_name && pw.phy_name !== '—' ? pw.phy_name : (tdrSupported ? 'IEEE / ethtool PHY' : 'IEEE 802.3 & NIC Link Integrity');
   subEl.textContent = `${link.iface || 'eth0'} · ${phySub}${tdr.tested_at ? ` · TDR: ${tdr.tested_at}` : ''}`;
 
   const mdixEl = document.getElementById('wm-mdix');
@@ -828,13 +848,14 @@ function renderDiagnosticsView(s) {
 }
 
 function renderScanView(scan) {
+  const pageSize = getScanPageSize();
   const hosts = scan.hosts || [];
   const total = hosts.length;
-  const maxPage = Math.max(0, Math.ceil(total / SCAN_PAGE_SIZE) - 1);
+  const maxPage = Math.max(0, Math.ceil(total / pageSize) - 1);
   if (scanPage > maxPage) scanPage = 0;
 
-  const startIdx = scanPage * SCAN_PAGE_SIZE;
-  const slice = hosts.slice(startIdx, startIdx + SCAN_PAGE_SIZE);
+  const startIdx = scanPage * pageSize;
+  const slice = hosts.slice(startIdx, startIdx + pageSize);
 
   document.getElementById('scan-hdr-left').textContent = total > 0
     ? `SHOWING ${startIdx + 1}–${startIdx + slice.length} OF ${total} DEVICES • SUBNET: ${scan.subnet}`
@@ -1513,6 +1534,7 @@ function renderSnapshot(s) {
   renderSysNetCalPane(s);
   renderTailcatUI(s);
   renderPentestViews(s);
+  renderSerialPane(s.serial || {});
   const pdfModal = document.getElementById('pdf-modal');
   if (pdfModal && !pdfModal.classList.contains('hidden') && pdfActiveTab === 'sheet') {
     renderPdfTouchSheet();
@@ -1550,9 +1572,11 @@ function renderSnapshot(s) {
     if (blSec) blSec.classList.toggle('hidden', caps.supports_backlight === false);
 
     const dsiFlipSupported = caps.supports_dsi_flip !== false;
+    const liveFlipSupported = Boolean(caps.supports_live_flip);
+    const anyFlipSupported = dsiFlipSupported || liveFlipSupported;
     const overlaySupported = caps.supports_overlayfs !== false;
-    document.getElementById('btn-ori-normal').classList.toggle('hidden', !dsiFlipSupported);
-    document.getElementById('btn-ori-flipped').classList.toggle('hidden', !dsiFlipSupported);
+    document.getElementById('btn-ori-normal').classList.toggle('hidden', !anyFlipSupported);
+    document.getElementById('btn-ori-flipped').classList.toggle('hidden', !anyFlipSupported);
     document.getElementById('btn-ori-normal').classList.toggle('active', !s.system.screen_flipped);
     document.getElementById('btn-ori-flipped').classList.toggle('active', Boolean(s.system.screen_flipped));
     document.getElementById('sys-reboot-note').classList.toggle('hidden', !s.system.reboot_required);
@@ -1569,9 +1593,13 @@ function renderSnapshot(s) {
     }
     const optsLbl = document.getElementById('sys-opts-label');
     if (optsLbl) {
-      optsLbl.textContent = (dsiFlipSupported || overlaySupported)
-        ? 'DSI Orientation & Read-Only Root (OverlayFS)'
-        : 'Security & Testing Mode';
+      if (liveFlipSupported) {
+        optsLbl.textContent = 'Display Orientation (Live Flip) & Testing Mode';
+      } else if (dsiFlipSupported || overlaySupported) {
+        optsLbl.textContent = 'DSI Orientation & Read-Only Root (OverlayFS)';
+      } else {
+        optsLbl.textContent = 'Security & Testing Mode';
+      }
     }
   }
 
@@ -2391,7 +2419,7 @@ function startSubnetScan() {
 
 function nextScanPage() {
   if (!latestSnap || !latestSnap.scan.hosts.length) return;
-  const maxPage = Math.max(0, Math.ceil(latestSnap.scan.hosts.length / SCAN_PAGE_SIZE) - 1);
+  const maxPage = Math.max(0, Math.ceil(latestSnap.scan.hosts.length / getScanPageSize()) - 1);
   scanPage = (scanPage + 1) > maxPage ? 0 : (scanPage + 1);
   renderScanView(latestSnap.scan);
 }
@@ -4137,6 +4165,191 @@ function enterAppMode() {
   document.body.classList.remove('kiosk-mode');
   document.body.classList.toggle('app-mode');
 }
+
+// ==================== RS-232 / USB SERIAL CONSOLE ====================
+let serialWs = null;
+let serialTextBuf = '';
+
+function _appendSerialTermText(chunk) {
+  if (!chunk) return;
+  serialTextBuf = (serialTextBuf + chunk.replace(/\r\n/g, '\n').replace(/\r/g, '\n')).slice(-32768);
+  const term = document.getElementById('serial-term');
+  if (term) {
+    term.textContent = serialTextBuf;
+    term.scrollTop = term.scrollHeight;
+  }
+}
+
+function connectSerialWs() {
+  if (serialWs && (serialWs.readyState === WebSocket.OPEN || serialWs.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  serialWs = new WebSocket(`${proto}://${window.location.host}/ws/serial`);
+  serialWs.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'init') {
+        serialTextBuf = '';
+        _appendSerialTermText(msg.data || '');
+      } else if (msg.type === 'rx') {
+        _appendSerialTermText(msg.data || '');
+      } else if (msg.type === 'clear') {
+        serialTextBuf = '';
+        const term = document.getElementById('serial-term');
+        if (term) term.textContent = '';
+      }
+    } catch (_) {}
+  };
+  serialWs.onclose = () => {
+    serialWs = null;
+    if (currentView === 'serial') setTimeout(connectSerialWs, 2000);
+  };
+}
+
+function renderSerialPane(sr) {
+  const selPort = document.getElementById('sel-serial-port');
+  const ports = sr.ports || [];
+  if (selPort && ports.length) {
+    const prev = selPort.value || sr.port || '';
+    const sig = ports.map(p => p.device).join('|');
+    if (selPort.dataset.sig !== sig) {
+      selPort.dataset.sig = sig;
+      selPort.innerHTML = ports.map(p =>
+        `<option value="${esc(p.device)}">${esc(p.device)} (${esc(p.description || 'Serial')})</option>`
+      ).join('');
+      if (prev && ports.some(p => p.device === prev)) selPort.value = prev;
+    }
+  } else if (selPort && !ports.length && !sr.connected) {
+    selPort.dataset.sig = '';
+    selPort.innerHTML = '<option value="">No serial ports found</option>';
+  }
+
+  const stLbl = document.getElementById('serial-status-lbl');
+  if (stLbl) {
+    stLbl.textContent = sr.error ? sr.error : (sr.status || 'Disconnected');
+    stLbl.style.color = sr.error ? '#fda4af' : (sr.connected ? '#4ade80' : '#a1a1aa');
+  }
+  const btnConn = document.getElementById('btn-serial-conn');
+  if (btnConn) {
+    btnConn.textContent = sr.connected ? 'DISCONNECT' : 'CONNECT';
+    btnConn.classList.toggle('running', Boolean(sr.connected));
+  }
+  const cntEl = document.getElementById('serial-counters');
+  if (cntEl) cntEl.textContent = `RX ${sr.bytes_rx || 0} B · TX ${sr.bytes_tx || 0} B`;
+
+  if (!serialWs && sr.recent_output && !serialTextBuf) {
+    _appendSerialTermText(sr.recent_output);
+  }
+}
+
+async function refreshSerialPorts() {
+  try {
+    const res = await fetch('/api/serial/ports');
+    if (res.ok) {
+      const sr = await res.json();
+      if (latestSnap) latestSnap.serial = sr;
+      renderSerialPane(sr);
+    }
+  } catch (_) {}
+}
+
+async function toggleSerialConnect() {
+  const sr = (latestSnap && latestSnap.serial) || {};
+  if (sr.connected) {
+    await apiPost('/api/serial/disconnect', {});
+    return;
+  }
+  const port = document.getElementById('sel-serial-port').value;
+  const baud = Number(document.getElementById('sel-serial-baud').value || 9600);
+  if (!port) return;
+  connectSerialWs();
+  await apiPost('/api/serial/connect', { port, baud });
+  const term = document.getElementById('serial-term');
+  if (term) term.focus();
+}
+
+function serialSendRaw(data, appendCr = false) {
+  if (serialWs && serialWs.readyState === WebSocket.OPEN && !appendCr) {
+    serialWs.send(JSON.stringify({ type: 'tx', data }));
+  } else {
+    apiPost('/api/serial/send', { data, append_cr: appendCr });
+  }
+}
+
+function serialQuickCmd(cmd) {
+  serialSendRaw(cmd, true);
+}
+
+function serialSendBreak() {
+  if (serialWs && serialWs.readyState === WebSocket.OPEN) {
+    serialWs.send(JSON.stringify({ type: 'break' }));
+  } else {
+    apiPost('/api/serial/break', {});
+  }
+}
+
+function serialSendCtrlC() {
+  serialSendRaw('\x03', false);
+}
+
+function serialClearTerm() {
+  serialTextBuf = '';
+  const term = document.getElementById('serial-term');
+  if (term) term.textContent = '';
+  apiPost('/api/serial/clear', {});
+}
+
+function openSerialKeyboard() {
+  openTouchKeyboard({
+    title: 'SERIAL CONSOLE COMMAND',
+    initialValue: '',
+    mode: 'text',
+    secret: false,
+    onDone: (val) => serialSendRaw(val, true)
+  });
+}
+
+function serialDownloadLog() {
+  const blob = new Blob([serialTextBuf || ''], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jacktrace_serial_console.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+document.addEventListener('keydown', (ev) => {
+  if (currentView !== 'serial') return;
+  if (isTouchKeyboardOpen()) return;
+  const tag = (ev.target && ev.target.tagName) ? ev.target.tagName.toUpperCase() : '';
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  const sr = (latestSnap && latestSnap.serial) || {};
+  if (!sr.connected) return;
+
+  if (ev.ctrlKey && ev.key.toLowerCase() === 'c') {
+    ev.preventDefault();
+    serialSendRaw('\x03', false);
+  } else if (ev.ctrlKey && ev.key.toLowerCase() === 'z') {
+    ev.preventDefault();
+    serialSendRaw('\x1a', false);
+  } else if (ev.ctrlKey || ev.metaKey || ev.altKey) {
+    return;
+  } else if (ev.key === 'Enter') {
+    ev.preventDefault();
+    serialSendRaw('\r', false);
+  } else if (ev.key === 'Backspace') {
+    ev.preventDefault();
+    serialSendRaw('\x08', false);
+  } else if (ev.key === 'Tab') {
+    ev.preventDefault();
+    serialSendRaw('\t', false);
+  } else if (ev.key.length === 1) {
+    ev.preventDefault();
+    serialSendRaw(ev.key, false);
+  }
+});
 
 function connectWs() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';

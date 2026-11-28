@@ -94,6 +94,9 @@ JackTrace also supports **x86_64 Linux** laptops and UMPCs — especially the **
 
   # Or appliance Wayland kiosk mode (boots straight into JackTrace on tty1)
   sudo bash scripts/setup_x86.sh --profile gpd-pocket3 --mode kiosk
+
+  # Optional seamless Plymouth boot splash for x86_64 / GPD Pocket 3
+  sudo bash scripts/setup_splash_x86.sh --profile gpd-pocket3
   ```
 - **What `--profile gpd-pocket3` configures:**
   - Auto-detects predictable wired/wireless interface names (`enp*`/`eno*` and `wlp*`/`wlo*`).

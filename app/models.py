@@ -151,6 +151,7 @@ class PlatformCapabilities(BaseModel):
     has_battery: bool = False
     supports_backlight: bool = False
     supports_dsi_flip: bool = False
+    supports_live_flip: bool = False
     supports_overlayfs: bool = False
     supports_tdr: bool = True
 
@@ -810,6 +811,26 @@ class TailcatState(BaseModel):
     webhook_status: str = ""
 
 
+class SerialPortInfo(BaseModel):
+    device: str
+    description: str = ""
+    hwid: str = ""
+    is_usb: bool = False
+
+
+class SerialConsoleState(BaseModel):
+    available: bool = True
+    connected: bool = False
+    port: str = ""
+    baud: int = 9600
+    bytes_rx: int = 0
+    bytes_tx: int = 0
+    status: str = "Disconnected"
+    error: str = ""
+    ports: List[SerialPortInfo] = Field(default_factory=list)
+    recent_output: str = ""
+
+
 class TesterSnapshot(BaseModel):
     timestamp: str
     mode: str = "live"
@@ -842,3 +863,4 @@ class TesterSnapshot(BaseModel):
     dot1x: Dot1xTestState = Field(default_factory=Dot1xTestState)
     pentest: PentestState = Field(default_factory=PentestState)
     tailcat: TailcatState = Field(default_factory=TailcatState)
+    serial: SerialConsoleState = Field(default_factory=SerialConsoleState)
