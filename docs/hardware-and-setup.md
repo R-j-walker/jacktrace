@@ -97,7 +97,7 @@ JackTrace also supports **x86_64 Linux** laptops and UMPCs — especially the **
   ```
 - **What `--profile gpd-pocket3` configures:**
   - Auto-detects predictable wired/wireless interface names (`enp*`/`eno*` and `wlp*`/`wlo*`).
-  - Rotates the portrait-native panel (`fbcon=rotate:1 video=DSI-1:panel_orientation=right_side_up` in `/etc/default/grub.d/90-jacktrace-gpd-pocket3.cfg`) and applies the Goodix `libinput` touch matrix (`0 1 0 -1 0 1`) via `/etc/udev/rules.d/99-gpd-pocket3-touch.rules`.
+  - Rotates the portrait-native panel (`fbcon=rotate:1 video=DSI-1:panel_orientation=right_side_up` in `/etc/default/grub.d/90-jacktrace-gpd-pocket3.cfg`, plus `wlr-randr --output DSI-1 --transform 270 --scale 1.5` in Cage kiosk mode) and applies the Goodix `GXTP7380:00 27C6:0113*` `libinput` touch matrix (`0 1 0 -1 0 1`) via `/etc/udev/rules.d/99-gpd-pocket3-touch.rules`.
   - Uses **`?mode=app`** responsive fullscreen mode (normal cursor, battery gauge in top bar, `6 GHz` Wi-Fi survey support, and hardware keyboard input inside `#kb-modal` with toggleable virtual keys).
 - **Hardware TDR Caveat:** Onboard Realtek `RTL8125` (`r8169`) and common USB NICs (`r8152`, `ax88179_178a`) do not implement Linux `ethtool --cable-test` or Broadcom MDIO diagnostics; JackTrace safely detects non-Broadcom PHYs without issuing Broadcom register writes and hides Pi-only `DSI Flip` / `OverlayFS` toggles automatically.
 

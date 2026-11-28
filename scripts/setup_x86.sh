@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 
 # JackTrace — x86_64 Linux & GPD Pocket 3 Provisioning Script
 # Tested on Debian 13 (Trixie), Debian 12 (Bookworm), and Ubuntu 24.04 LTS.
@@ -180,10 +181,10 @@ EOF
 
   mkdir -p /etc/udev/rules.d
   cat >/etc/udev/rules.d/99-gpd-pocket3-touch.rules <<'EOF'
-ACTION=="add|change", KERNEL=="event*", ATTRS{name}=="Goodix Capacitive TouchScreen", ENV{LIBINPUT_CALIBRATION_MATRIX}="0 1 0 -1 0 1"
+ACTION=="add|change", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="GXTP7380:00 27C6:0113*", ENV{LIBINPUT_CALIBRATION_MATRIX}="0 1 0 -1 0 1"
 EOF
   udevadm control --reload-rules 2>/dev/null || true
-  udevadm trigger 2>/dev/null || true
+  udevadm trigger --subsystem-match=input 2>/dev/null || true
 fi
 
 echo "==> [6/6] Configuring JackTrace UI mode '${MODE}'..."
@@ -237,7 +238,7 @@ else
 
   ROTATE_CMD=""
   if [[ "${PROFILE}" == "gpd-pocket3" ]]; then
-    ROTATE_CMD='(sleep 2 && wlr-randr --output DSI-1 --transform 90 --scale 1.5 2>/dev/null || true) &'
+    ROTATE_CMD='(sleep 2 && wlr-randr --output DSI-1 --transform 270 --scale 1.5 2>/dev/null || true) &'
   fi
 
   cat >/usr/local/bin/jacktrace-kiosk-launch <<EOF
