@@ -4,16 +4,21 @@ export PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 
 # JackTrace — x86_64 & GPD Pocket 3 Seamless Plymouth Boot Splash Installer
 # Usage:
-#   sudo bash scripts/setup_splash_x86.sh [--profile generic|gpd-pocket3]
+#   sudo bash scripts/setup_splash_x86.sh [--profile generic|gpd-pocket3] [--hide-grub]
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROFILE=""
+HIDE_GRUB=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile)
       PROFILE="${2:-}"
       shift 2
+      ;;
+    --hide-grub)
+      HIDE_GRUB=1
+      shift
       ;;
     -h|--help)
       sed -n '4,7p' "${BASH_SOURCE[0]}"
@@ -125,17 +130,23 @@ echo "==> [4/6] Configuring quiet GRUB boot parameters..."
 mkdir -p /etc/default/grub.d
 if [[ "${PROFILE}" == "gpd-pocket3" ]]; then
   cat >/etc/default/grub.d/90-jacktrace-gpd-pocket3.cfg <<'EOF'
-GRUB_TIMEOUT=1
-GRUB_TIMEOUT_STYLE=hidden
 GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT fbcon=rotate:1 video=DSI-1:panel_orientation=right_side_up"
 EOF
 fi
 
-cat >/etc/default/grub.d/91-jacktrace-splash.cfg <<'EOF'
+if [[ "${HIDE_GRUB}" -eq 1 ]]; then
+  cat >/etc/default/grub.d/91-jacktrace-splash.cfg <<'EOF'
 GRUB_TIMEOUT=1
 GRUB_TIMEOUT_STYLE=hidden
 GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT quiet splash loglevel=3 logo.nologo vt.global_cursor_default=0 plymouth.ignore-serial-consoles"
 EOF
+else
+  cat >/etc/default/grub.d/91-jacktrace-splash.cfg <<'EOF'
+GRUB_TIMEOUT=4
+GRUB_TIMEOUT_STYLE=menu
+GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT quiet splash loglevel=3 logo.nologo vt.global_cursor_default=0 plymouth.ignore-serial-consoles"
+EOF
+fi
 
 if command -v update-grub >/dev/null 2>&1; then
   update-grub
