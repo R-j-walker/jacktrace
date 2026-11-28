@@ -51,9 +51,11 @@ mkdir -p "${THEME_DIR}"
 
 LOGO_JPG="${APP_DIR}/branding/logos/concept_1_pinout_pulse.jpg"
 SPLASH_PNG="${APP_DIR}/branding/logos/splash_800x480.png"
-SRC_IMG="${LOGO_JPG}"
+SRC_IMG="${SPLASH_PNG}"
+FIT_RATIO="1.0"
 if [[ ! -f "${SRC_IMG}" ]]; then
-  SRC_IMG="${SPLASH_PNG}"
+  SRC_IMG="${LOGO_JPG}"
+  FIT_RATIO="0.62"
 fi
 
 if [[ -x "${APP_DIR}/.venv/bin/python" ]] && "${APP_DIR}/.venv/bin/python" -c "import PIL" 2>/dev/null; then
@@ -64,8 +66,9 @@ w, h = src.size
 corners = [src.getpixel((4, 4)), src.getpixel((w - 5, 4)), src.getpixel((4, h - 5)), src.getpixel((w - 5, h - 5))]
 bg = tuple(round(sum(c[i] for c in corners) / 4) for i in range(3))
 tw, th = 1920, 1200
+fit = float("${FIT_RATIO}")
 canvas = Image.new("RGB", (tw, th), bg)
-scale = min((tw * 0.62) / w, (th * 0.62) / h)
+scale = min((tw * fit) / w, (th * fit) / h)
 nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
 resized = src.resize((nw, nh), Image.Resampling.LANCZOS)
 canvas.paste(resized, ((tw - nw) // 2, (th - nh) // 2))
