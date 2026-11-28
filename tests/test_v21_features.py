@@ -142,14 +142,14 @@ def test_speedtest_iface_selector_and_overlayfs_route(tmp_path: Path):
         assert r_wifi.status_code == 200
         spd_wifi = r_wifi.json()["diagnostics"]["speedtest"]
         assert spd_wifi["iface_mode"] == "wifi"
-        assert spd_wifi["egress_iface"] == "wlan0"
+        assert spd_wifi["egress_iface"] == runtime.wifi_iface
         assert spd_wifi["egress_ip"] == "192.168.0.110"
 
         r_eth = client.post("/api/diag/speedtest", json={"iface_mode": "eth"})
         assert r_eth.status_code == 200
         spd_eth = r_eth.json()["diagnostics"]["speedtest"]
         assert spd_eth["iface_mode"] == "eth"
-        assert spd_eth["egress_iface"] == "eth0"
+        assert spd_eth["egress_iface"] == runtime.iface
 
         r_ro = client.post("/api/system/overlayfs", json={"enable": True})
         assert r_ro.status_code == 200
