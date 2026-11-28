@@ -48,6 +48,8 @@ let wifiClientAvailRows = [];
 const params = new URLSearchParams(window.location.search);
 if (params.get('kiosk') === '1') {
   document.body.classList.add('kiosk-mode');
+} else if (params.get('mode') === 'app' || params.get('mode') === 'fluid') {
+  document.body.classList.add('app-mode');
 }
 
 function esc(s) {
@@ -95,7 +97,7 @@ function nav(viewId) {
     home: 'LIVE WORKBENCH',
     autotest: 'AUTOTEST CHECKLIST',
     sw: 'SWITCH & PORT ANALYZER',
-    link: 'BCM54213PE CABLE TDR',
+    link: 'CABLE TDR & PHY',
     diag: 'SPEED & PATH DIAGNOSTICS',
     scan: 'SUBNET HOST DISCOVERY',
     wifi: 'WI-FI SITE SURVEY',
@@ -1337,19 +1339,21 @@ function renderSnapshot(s) {
   document.getElementById('home-badge-06').textContent = wcTop.ap_mode_active
     ? 'AP ON'
     : (wifiState.total_count > 0 ? `CH ${wifiState.best_24g_channel || '?'}` : (wcTop.connected ? 'CLIENT' : 'OFF'));
+  const wifiIf = (s.system && s.system.wifi_iface) || (s.wifi && s.wifi.iface) || 'wlan0';
   if (wcTop.ap_mode_active) {
     setMetric('home-val-06', 'Field AP', 'v-amber');
     document.getElementById('home-sub-06').textContent = 'JackTrace-AP (10.42.0.1)';
   } else if (wcTop.connected) {
     setMetric('home-val-06', `${wcTop.active_ssid || 'Wi-Fi'}${sigTop ? ' · ' + sigTop : ''}`, 'v-good');
-    document.getElementById('home-sub-06').textContent = `IP ${wcTop.ipv4 || '—'} · wlan0`;
+    document.getElementById('home-sub-06').textContent = `IP ${wcTop.ipv4 || '—'} · ${wifiIf}`;
   } else {
     setMetric('home-val-06', 'Disconnected', '');
     document.getElementById('home-sub-06').textContent = 'Tap SYS → Wi-Fi to join';
   }
+  const cnt6Home = wifiState.count_6g ? `/6G:${wifiState.count_6g}` : '';
   document.getElementById('home-meta-06').textContent = wifiState.total_count > 0
-    ? `Survey: ${wifiState.total_count} APs (2.4G:${wifiState.count_24g}/5G:${wifiState.count_5g})`
-    : '2.4 / 5 GHz Analyzer';
+    ? `Survey: ${wifiState.total_count} APs (2.4G:${wifiState.count_24g}/5G:${wifiState.count_5g}${cnt6Home})`
+    : (wifiState.count_6g ? '2.4 / 5 / 6 GHz Analyzer' : '2.4 / 5 GHz Analyzer');
 
   // Tile 07: Security & Tap
   const tapTxt = tapActive ? 'TAP ON' : (s.security.rogue_dhcp_detected ? 'ROGUE!' : 'GUARD');
@@ -1514,23 +1518,60 @@ function renderSnapshot(s) {
     renderPdfTouchSheet();
   }
 
-  // System Modal values
+  // System Modal & Battery Pill values
   if (s.system) {
+    const caps = s.system.capabilities || {};
+    const sysWifiIf = s.system.wifi_iface || (s.wifi && s.wifi.iface) || 'wlan0';
+    const batPill = document.getElementById('pill-bat');
+    if (batPill) {
+      const bp = s.system.battery_pct;
+      if (bp !== null && bp !== undefined) {
+        const bst = String(s.system.battery_status || '').toLowerCase();
+        const isChg = bst.includes('charg') && !bst.includes('discharg');
+        batPill.classList.remove('hidden', 'bat-low', 'bat-warn', 'bat-chg');
+        if (isChg) batPill.classList.add('bat-chg');
+        else if (bp <= 15) batPill.classList.add('bat-low');
+        else if (bp <= 35) batPill.classList.add('bat-warn');
+        batPill.textContent = `${isChg ? '⚡' : '🔋'} ${bp}%`;
+        batPill.title = `Battery: ${bp}%${s.system.battery_status ? ' (' + s.system.battery_status + ')' : ''}`;
+      } else {
+        batPill.classList.add('hidden');
+      }
+    }
+
     document.getElementById('sys-host').textContent = `${s.system.hostname} • ${s.system.uptime_str}`;
     document.getElementById('sys-temp').textContent = s.system.cpu_temp_c !== null ? `${s.system.cpu_temp_c} °C` : '—';
+    const sysWlanIfEl = document.getElementById('sys-wlan-iface');
+    if (sysWlanIfEl) sysWlanIfEl.textContent = sysWifiIf;
     document.getElementById('sys-wlan').textContent = `${s.audit.wifi_ssid} (${s.audit.wifi_ip})`;
     document.getElementById('sys-eth').textContent = `${s.link.iface}: ${s.l3.ipv4_address}`;
+
+    const blSec = document.getElementById('sys-sec-backlight');
+    if (blSec) blSec.classList.toggle('hidden', caps.supports_backlight === false);
+
+    const dsiFlipSupported = caps.supports_dsi_flip !== false;
+    const overlaySupported = caps.supports_overlayfs !== false;
+    document.getElementById('btn-ori-normal').classList.toggle('hidden', !dsiFlipSupported);
+    document.getElementById('btn-ori-flipped').classList.toggle('hidden', !dsiFlipSupported);
     document.getElementById('btn-ori-normal').classList.toggle('active', !s.system.screen_flipped);
     document.getElementById('btn-ori-flipped').classList.toggle('active', Boolean(s.system.screen_flipped));
     document.getElementById('sys-reboot-note').classList.toggle('hidden', !s.system.reboot_required);
+
     const btnRo = document.getElementById('btn-sys-ro');
     if (btnRo) {
+      btnRo.classList.toggle('hidden', !overlaySupported);
       const roActive = Boolean(s.system.overlayfs_active);
       const roPending = Boolean(s.system.overlayfs_pending_enable);
       btnRo.classList.toggle('active', roActive || roPending);
       btnRo.textContent = roActive
         ? '🛡 RO Root: ON'
         : (roPending ? '🛡 RO Root: REBOOT' : '🛡 RO Root: OFF');
+    }
+    const optsLbl = document.getElementById('sys-opts-label');
+    if (optsLbl) {
+      optsLbl.textContent = (dsiFlipSupported || overlaySupported)
+        ? 'DSI Orientation & Read-Only Root (OverlayFS)'
+        : 'Security & Testing Mode';
     }
   }
 
@@ -1787,6 +1828,15 @@ function renderWifiView(wf) {
   document.getElementById('wcnt-all').textContent = wf.total_count ?? nets.length;
   document.getElementById('wcnt-24').textContent = wf.count_24g ?? 0;
   document.getElementById('wcnt-5').textContent = wf.count_5g ?? 0;
+  const cnt6 = wf.count_6g ?? nets.filter(n => n.band === '6 GHz').length;
+  const wcnt6El = document.getElementById('wcnt-6');
+  if (wcnt6El) wcnt6El.textContent = cnt6;
+  const show6 = cnt6 > 0 || wifiBandFilter === '6 GHz' || wifiGraphBand === '6 GHz';
+  const btnBand6 = document.getElementById('btn-wband-6g');
+  if (btnBand6) btnBand6.classList.toggle('hidden', !show6);
+  const btnGraph6 = document.getElementById('btn-wgraph-6g');
+  if (btnGraph6) btnGraph6.classList.toggle('hidden', !show6);
+
   const bestChTxt = wf.best_24g_channel ? `Best 2.4G: Ch ${wf.best_24g_channel}` : 'Best 2.4G: Ch —';
   document.getElementById('wifi-best-ch').textContent = bestChTxt;
   document.getElementById('wifi-graph-best-ch').textContent = bestChTxt;
@@ -1805,15 +1855,16 @@ function renderWifiView(wf) {
 
   const tbody = document.getElementById('wifi-tbody');
   if (!filtered.length) {
+    const wifiIfLbl = wf.iface || 'wlan0';
     const msg = wf.scanning
-      ? 'Scanning 2.4 & 5 GHz RF channels via wlan0...'
+      ? `Scanning RF channels via ${wifiIfLbl}...`
       : (wf.error || 'No networks in this filter. Tap SCAN WI-FI above.');
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#71717a;padding:24px;">${esc(msg)}</td></tr>`;
   } else {
     tbody.innerHTML = filtered.map((n, idx) => {
       const col = signalColor(n.signal_dbm);
       const assocDot = n.associated ? `<span style="color:#4ade80">● </span>` : '';
-      const bndShort = n.band === '2.4 GHz' ? '2.4G' : (n.band === '5 GHz' ? '5G' : n.band);
+      const bndShort = n.band === '2.4 GHz' ? '2.4G' : (n.band === '5 GHz' ? '5G' : (n.band === '6 GHz' ? '6G' : n.band));
       const joinBtn = (!n.associated && n.ssid && n.ssid !== '<Hidden>')
         ? `<button class="mini-btn" style="padding:1px 5px;font-size:9px;margin-left:5px;" onclick="event.stopPropagation(); joinSurveyWifiIdx(${idx})">Join</button>`
         : '';
@@ -1890,6 +1941,7 @@ function renderWifiChanCanvas(wf) {
   ctx.clearRect(0, 0, w, h);
 
   const is24 = wifiGraphBand === '2.4 GHz';
+  const is6 = wifiGraphBand === '6 GHz';
   const aps = (wf.networks || []).filter(n => n.band === wifiGraphBand);
   document.getElementById('wifi-graph-hdr-left').textContent = `${wifiGraphBand} CHANNEL OVERLAP & DENSITY`;
   document.getElementById('wifi-graph-hdr-right').textContent = `${aps.length} APs Visible`;
@@ -1899,8 +1951,8 @@ function renderWifiChanCanvas(wf) {
   const plotH = h - padT - padB;
   const minDbm = -100, maxDbm = -30;
 
-  const chMin = is24 ? -1 : 30;
-  const chMax = is24 ? 15 : 171;
+  const chMin = is24 ? -1 : (is6 ? -5 : 30);
+  const chMax = is24 ? 15 : (is6 ? 240 : 171);
   const xForCh = (ch) => padL + ((ch - chMin) / (chMax - chMin)) * plotW;
   const yForDbm = (dbm) => padT + plotH - ((Math.max(minDbm, Math.min(maxDbm, dbm)) - minDbm) / (maxDbm - minDbm)) * plotH;
 
@@ -1927,7 +1979,9 @@ function renderWifiChanCanvas(wf) {
   });
 
   // Channel X-axis labels
-  const ticks = is24 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] : [36, 48, 52, 64, 100, 116, 132, 149, 165];
+  const ticks = is24
+    ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    : (is6 ? [1, 33, 65, 97, 129, 161, 193, 229] : [36, 48, 52, 64, 100, 116, 132, 149, 165]);
   ctx.textAlign = 'center';
   ticks.forEach(ch => {
     const x = xForCh(ch);
@@ -2083,7 +2137,32 @@ function renderWifiWalkCanvas(walk) {
   });
 }
 
-// On-Screen Touch Keyboard & Numpad Modal
+// On-Screen Touch Keyboard & Numpad Modal (+ Physical Keyboard Support)
+let kbShowVirtualKeys = (() => {
+  try {
+    const stored = localStorage.getItem('jacktrace_kb_virtual');
+    if (stored === '0' || stored === '1') return stored === '1';
+  } catch (_) {}
+  return !document.body.classList.contains('app-mode');
+})();
+
+function applyKbVirtualKeysState() {
+  const modal = document.getElementById('kb-modal');
+  const toggleBtn = document.getElementById('btn-kb-keys-toggle');
+  const hint = document.getElementById('kb-hw-hint');
+  if (modal) modal.classList.toggle('kb-compact', !kbShowVirtualKeys);
+  if (toggleBtn) toggleBtn.textContent = kbShowVirtualKeys ? 'Hide Keys' : 'Show Keys';
+  if (hint) hint.classList.toggle('hidden', kbShowVirtualKeys);
+}
+
+function toggleKbVirtualKeys() {
+  kbShowVirtualKeys = !kbShowVirtualKeys;
+  try {
+    localStorage.setItem('jacktrace_kb_virtual', kbShowVirtualKeys ? '1' : '0');
+  } catch (_) {}
+  applyKbVirtualKeysState();
+}
+
 function openTouchKeyboard({ title, initialValue, mode, secret, onDone }) {
   kbValue = String(initialValue ?? '');
   kbMode = mode === 'ip' ? 'ip' : 'text';
@@ -2099,8 +2178,45 @@ function openTouchKeyboard({ title, initialValue, mode, secret, onDone }) {
     eyeBtn.textContent = '👁 Show';
   }
   document.getElementById('kb-modal').classList.remove('hidden');
+  applyKbVirtualKeysState();
   renderTouchKeyboard();
 }
+
+function isTouchKeyboardOpen() {
+  const m = document.getElementById('kb-modal');
+  return Boolean(m && !m.classList.contains('hidden'));
+}
+
+document.addEventListener('keydown', (ev) => {
+  if (!isTouchKeyboardOpen()) return;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    kbSubmit();
+  } else if (ev.key === 'Escape') {
+    ev.preventDefault();
+    closeTouchKeyboard();
+  } else if (ev.key === 'Backspace') {
+    ev.preventDefault();
+    kbBackspace();
+  } else if (ev.key === 'Delete') {
+    ev.preventDefault();
+    kbClear();
+  } else if (ev.key.length === 1) {
+    ev.preventDefault();
+    kbType(ev.key);
+  }
+});
+
+document.addEventListener('paste', (ev) => {
+  if (!isTouchKeyboardOpen()) return;
+  const txt = ev.clipboardData ? ev.clipboardData.getData('text') : '';
+  if (txt) {
+    ev.preventDefault();
+    kbValue += txt.replace(/[\r\n]+/g, '');
+    renderKbDisplay();
+  }
+});
 
 function closeTouchKeyboard() {
   document.getElementById('kb-modal').classList.add('hidden');
@@ -2883,7 +2999,7 @@ function renderWifiClientPane(wc) {
   wifiClientSavedRows = saved;
   const savedEl = document.getElementById('wcli-saved-list');
   if (!saved.length) {
-    savedEl.innerHTML = '<div style="font-size:10.5px;color:#64748b;padding:8px 4px;">No saved Wi-Fi profiles on wlan0.</div>';
+    savedEl.innerHTML = `<div style="font-size:10.5px;color:#64748b;padding:8px 4px;">No saved Wi-Fi profiles on ${esc(wc.iface || 'wlan0')}.</div>`;
   } else {
     savedEl.innerHTML = saved.map((p, idx) => `
       <div class="wcli-row ${p.active ? 'selected' : ''}">
@@ -4013,7 +4129,13 @@ function toggleRawJson() {
 }
 
 function enterKiosk() {
+  document.body.classList.remove('app-mode');
   document.body.classList.toggle('kiosk-mode');
+}
+
+function enterAppMode() {
+  document.body.classList.remove('kiosk-mode');
+  document.body.classList.toggle('app-mode');
 }
 
 function connectWs() {

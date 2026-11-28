@@ -82,6 +82,27 @@ sudo bash scripts/setup_splash.sh
 
 ---
 
+## 3b. x86_64 Linux & GPD Pocket 3 Setup
+
+JackTrace also supports **x86_64 Linux** laptops and UMPCs — especially the **GPD Pocket 3** (`1920×1200` convertible touchscreen, built-in battery, Intel AX200/AX210 Wi-Fi 6/6E, Realtek RTL8125 2.5GbE).
+
+- **Recommended Distro:** **Debian 13 (Trixie)** (Netinst / Minimal), which keeps full `.deb` package parity with Raspberry Pi OS (no Snap Chromium overhead) and includes a modern `6.12+` kernel for `r8169` (RTL8125) and `iwlwifi` (`firmware-iwlwifi`).
+- **Provisioning Script ([`scripts/setup_x86.sh`](../scripts/setup_x86.sh)):**
+  ```bash
+  # Desktop launcher mode (opens Chromium/Chrome --app=http://127.0.0.1:8080/?mode=app)
+  sudo bash scripts/setup_x86.sh --profile gpd-pocket3 --mode desktop
+
+  # Or appliance Wayland kiosk mode (boots straight into JackTrace on tty1)
+  sudo bash scripts/setup_x86.sh --profile gpd-pocket3 --mode kiosk
+  ```
+- **What `--profile gpd-pocket3` configures:**
+  - Auto-detects predictable wired/wireless interface names (`enp*`/`eno*` and `wlp*`/`wlo*`).
+  - Rotates the portrait-native panel (`fbcon=rotate:1 video=DSI-1:panel_orientation=right_side_up` in `/etc/default/grub.d/90-jacktrace-gpd-pocket3.cfg`) and applies the Goodix `libinput` touch matrix (`0 1 0 -1 0 1`) via `/etc/udev/rules.d/99-gpd-pocket3-touch.rules`.
+  - Uses **`?mode=app`** responsive fullscreen mode (normal cursor, battery gauge in top bar, `6 GHz` Wi-Fi survey support, and hardware keyboard input inside `#kb-modal` with toggleable virtual keys).
+- **Hardware TDR Caveat:** Onboard Realtek `RTL8125` (`r8169`) and common USB NICs (`r8152`, `ax88179_178a`) do not implement Linux `ethtool --cable-test` or Broadcom MDIO diagnostics; JackTrace safely detects non-Broadcom PHYs without issuing Broadcom register writes and hides Pi-only `DSI Flip` / `OverlayFS` toggles automatically.
+
+---
+
 ## 4. Systemd Services & Persisted Data
 
 ### Services
@@ -108,6 +129,7 @@ All runtime configuration and audit logs live under `data/` (excluded from `tar`
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `NETTESTER_IFACE` | Auto (`eth0` / `end0` / first wired NIC) | Primary wired Ethernet test interface |
+| `NETTESTER_WIFI_IFACE` | Auto (`wlan0` or first wireless NIC) | Primary Wi-Fi interface for Survey, Client & Hotspot |
 | `NETTESTER_HOST` | `0.0.0.0` | Uvicorn bind address |
 | `NETTESTER_PORT` | `8080` | HTTP / WebSocket server port |
 | `NETTESTER_DEMO` | `1` off-Linux, `0` on Linux | Set `1`/`true` to force simulated Demo Mode on Linux |

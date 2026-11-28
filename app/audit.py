@@ -54,15 +54,20 @@ def make_qr_data_uri(url: str) -> str:
     return f"data:image/svg+xml;base64,{b64}"
 
 
-def detect_wlan_portal_info(port: int = 8080, fallback_eth_ip: str = "—") -> Tuple[bool, str, str, str]:
+def detect_wlan_portal_info(
+    port: int = 8080,
+    fallback_eth_ip: str = "—",
+    wifi_iface: str = "wlan0",
+) -> Tuple[bool, str, str, str]:
     wifi_ip = ""
     ap_active = False
     ssid = "Wi-Fi"
+    w_if = (wifi_iface or "wlan0").strip() or "wlan0"
 
     if os.name != "nt":
         try:
             proc = subprocess.run(
-                ["ip", "-j", "-4", "addr", "show", "dev", "wlan0"],
+                ["ip", "-j", "-4", "addr", "show", "dev", w_if],
                 capture_output=True,
                 text=True,
                 timeout=1.5,
@@ -80,7 +85,7 @@ def detect_wlan_portal_info(port: int = 8080, fallback_eth_ip: str = "—") -> T
 
         try:
             iw = subprocess.run(
-                ["iw", "dev", "wlan0", "info"],
+                ["iw", "dev", w_if, "info"],
                 capture_output=True,
                 text=True,
                 timeout=1.5,
@@ -107,9 +112,10 @@ def detect_wlan_portal_info(port: int = 8080, fallback_eth_ip: str = "—") -> T
     return ap_active, ssid, (wifi_ip or "—"), portal_url
 
 
-def toggle_wlan_hotspot(enable_ap: bool) -> Tuple[bool, str]:
+def toggle_wlan_hotspot(enable_ap: bool, wifi_iface: str = "wlan0") -> Tuple[bool, str]:
+    w_if = (wifi_iface or "wlan0").strip() or "wlan0"
     if os.name == "nt":
-        return False, "Hotspot toggle requires Linux wlan0 hardware."
+        return False, f"Hotspot toggle requires Linux {w_if} hardware."
 
     if enable_ap:
         subprocess.run(["sysctl", "-w", "net.ipv4.ip_forward=0"], capture_output=True, check=False)
@@ -120,7 +126,7 @@ def toggle_wlan_hotspot(enable_ap: bool) -> Tuple[bool, str]:
                 "wifi",
                 "hotspot",
                 "ifname",
-                "wlan0",
+                w_if,
                 "con-name",
                 "JackTrace-Hotspot",
                 "ssid",
@@ -139,8 +145,8 @@ def toggle_wlan_hotspot(enable_ap: bool) -> Tuple[bool, str]:
     else:
         subprocess.run(["nmcli", "connection", "down", "JackTrace-Hotspot"], capture_output=True, timeout=6.0, check=False)
         subprocess.run(["nmcli", "connection", "delete", "JackTrace-Hotspot"], capture_output=True, timeout=6.0, check=False)
-        subprocess.run(["nmcli", "device", "connect", "wlan0"], capture_output=True, timeout=8.0, check=False)
-        return True, "Reconnected wlan0 to client Wi-Fi"
+        subprocess.run(["nmcli", "device", "connect", w_if], capture_output=True, timeout=8.0, check=False)
+        return True, f"Reconnected {w_if} to client Wi-Fi"
 
 
 class AuditStore:
@@ -560,13 +566,18 @@ class AuditStore:
         port: int,
         eth_ip: str,
         pcap_dict: dict,
+        wifi_iface: str = "wlan0",
     ) -> AuditPortalState:
         job_name, drop_prefix, next_num = self.get_job_full_meta()
         all_rows = self.list_all_ports(job_name=job_name)
         pass_cnt = sum(1 for r in all_rows if r.verdict == "PASS")
         fail_cnt = len(all_rows) - pass_cnt
 
-        ap_active, ssid, wifi_ip, portal_url = detect_wlan_portal_info(port=port, fallback_eth_ip=eth_ip)
+        ap_active, ssid, wifi_ip, portal_url = detect_wlan_portal_info(
+            port=port,
+            fallback_eth_ip=eth_ip,
+            wifi_iface=wifi_iface,
+        )
         pdf_url = f"{portal_url}/api/audit/report.pdf"
         csv_url = f"{portal_url}/api/audit/report.csv"
         qr_uri = make_qr_data_uri(pdf_url)

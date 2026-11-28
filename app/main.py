@@ -286,6 +286,7 @@ class WifiWatchRequest(BaseModel):
 class TesterRuntime:
     def __init__(self) -> None:
         self.iface: str = settings.iface
+        self.wifi_iface: str = settings.wifi_iface
         self.demo_mode: bool = settings.demo_mode
         self.demo_scenario: str = "healthy_1g"
         self.port_session_id: int = 1
@@ -325,8 +326,8 @@ class TesterRuntime:
         self.clients: Set[WebSocket] = set()
         self._push_event = asyncio.Event()
         self.diag = DiagnosticsManager(on_change=self.trigger_push)
-        self.wifi_mgr = WifiSurveyManager(iface="wlan0", on_change=self.trigger_push)
-        self.wifi_client = WifiClientManager(iface="wlan0", on_change=self.trigger_push)
+        self.wifi_mgr = WifiSurveyManager(iface=self.wifi_iface, on_change=self.trigger_push)
+        self.wifi_client = WifiClientManager(iface=self.wifi_iface, on_change=self.trigger_push)
         self._last_wcli_poll_ts: float = 0.0
         self.vlan_prober = VlanTrunkProber(on_change=self.trigger_push)
         self.snmp_mgr = SnmpSwitchManager(on_change=self.trigger_push)
@@ -350,9 +351,18 @@ class TesterRuntime:
             on_change=lambda: self._push_event.set(),
         )
         audit_init = self.audit_store.build_portal_state(
-            port=settings.port, eth_ip="—", pcap_dict=self.sniffer.pcap_status()
+            port=settings.port,
+            eth_ip="—",
+            pcap_dict=self.sniffer.pcap_status(),
+            wifi_iface=self.wifi_iface,
         )
-        sys_init = read_system_health(self.screen_flipped, self._orientation_reboot_required)
+        sys_init = read_system_health(
+            self.screen_flipped,
+            self._orientation_reboot_required,
+            wifi_iface=self.wifi_iface,
+            active_iface=self.iface,
+            demo_mode=self.demo_mode,
+        )
         self.latest_snapshot: TesterSnapshot = build_demo_snapshot(
             self.demo_scenario,
             self.blinker.state(),
@@ -413,6 +423,7 @@ class TesterRuntime:
             recon=recon_st,
             mac_spoof=mac_st,
             wifi_audit=wifi_audit_st,
+            primary_wifi_iface=self.wifi_iface,
         )
 
     def trigger_push(self) -> None:
@@ -449,10 +460,19 @@ class TesterRuntime:
         pcap_info = self.sniffer.pcap_status()
         eth_ip_hint = self._cached_l3.ipv4_address if not self.demo_mode else "172.24.10.84"
         audit_state = await asyncio.to_thread(
-            self.audit_store.build_portal_state, settings.port, eth_ip_hint, pcap_info
+            self.audit_store.build_portal_state,
+            settings.port,
+            eth_ip_hint,
+            pcap_info,
+            self.wifi_iface,
         )
         sys_state = await asyncio.to_thread(
-            read_system_health, self.screen_flipped, self._orientation_reboot_required
+            read_system_health,
+            self.screen_flipped,
+            self._orientation_reboot_required,
+            self.wifi_iface,
+            self.iface,
+            self.demo_mode,
         )
         wifi_state = self.wifi_mgr.snapshot(demo_mode=self.demo_mode)
         vp_state = self.vlan_prober.snapshot()
@@ -761,6 +781,7 @@ class TesterRuntime:
                 settings.port,
                 self._cached_l3.ipv4_address,
                 pcap_info,
+                self.wifi_iface,
             )
             snap.audit = audit_refreshed
             snap.sync = self.sync_mgr.snapshot()
@@ -778,7 +799,7 @@ class TesterRuntime:
         prev_speed = self.latest_snapshot.link.speed_mbps
 
         self.tdr_state = self.tdr_state.model_copy(
-            update={"running": True, "summary": "Firing BCM54213PE TDR reflectometry pulse..."}
+            update={"running": True, "summary": f"Firing Cable TDR pulse on {self.iface}..."}
         )
         self._tdr_grace_until = time.monotonic() + 8.5
         self.trigger_push()
@@ -1212,7 +1233,7 @@ async def api_download_pcap():
 
 @app.post("/api/audit/hotspot", response_model=TesterSnapshot)
 async def api_toggle_hotspot(req: HotspotRequest):
-    await asyncio.to_thread(toggle_wlan_hotspot, req.enable)
+    await asyncio.to_thread(toggle_wlan_hotspot, req.enable, runtime.wifi_iface)
     snap = await runtime.collect_snapshot(force_wcli=True)
     await runtime.broadcast(snap)
     return snap
@@ -1278,7 +1299,12 @@ async def api_diag_traceroute(req: TargetRequest):
 @app.post("/api/diag/speedtest", response_model=TesterSnapshot)
 async def api_diag_speedtest(req: Optional[SpeedTestRequest] = Body(default=None)):
     iface_mode = req.iface_mode if req else "auto"
-    await runtime.diag.run_speedtest(runtime.iface, runtime.demo_mode, iface_mode=iface_mode)
+    await runtime.diag.run_speedtest(
+        runtime.iface,
+        runtime.demo_mode,
+        iface_mode=iface_mode,
+        wifi_iface=runtime.wifi_iface,
+    )
     snap = await runtime.collect_snapshot()
     await runtime.broadcast(snap)
     return snap

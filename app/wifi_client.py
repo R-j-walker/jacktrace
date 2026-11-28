@@ -413,12 +413,12 @@ class WifiClientManager:
             err_msg = _sanitize_error(err_w)
 
         if ap_active:
-            status_txt = "Field AP (JackTrace-AP) active on wlan0"
+            status_txt = f"Field AP (JackTrace-AP) active on {self.iface}"
         elif connected:
             ip_part = f" ({ipv4})" if ipv4 != "—" else ""
             status_txt = f"Connected to {active_ssid}{ip_part}"
         else:
-            status_txt = "Disconnected (wlan0 idle)"
+            status_txt = f"Disconnected ({self.iface} idle)"
 
         last_ts = self.state.last_scan_at
         if rescan or nets or not last_ts:
@@ -628,7 +628,7 @@ class WifiClientManager:
             self._demo_connected = False
             self._demo_active_ssid = "—"
             self._demo_ipv4 = "—"
-            self.state = self._build_demo_state(status="Disconnected (wlan0 idle)")
+            self.state = self._build_demo_state(status=f"Disconnected ({self.iface} idle)")
             self._last_demo_mode = True
             self._on_change()
             return self.state.model_copy(deep=True)
@@ -643,7 +643,7 @@ class WifiClientManager:
             if rc != 0 and err.strip():
                 fresh.error = _sanitize_error(err)
             else:
-                fresh.status = "Disconnected (wlan0 idle)"
+                fresh.status = f"Disconnected ({self.iface} idle)"
             return fresh
 
         self.state = await asyncio.to_thread(_exec_live_disconnect)

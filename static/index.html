@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>JackTrace — Field Network Analyzer</title>
-  <link rel="stylesheet" href="/static/style.css?v=5.7">
+  <link rel="stylesheet" href="/static/style.css?v=5.8">
 </head>
 <body>
   <div class="bench-shell">
@@ -99,6 +99,7 @@
               <span class="dot" id="wifi-dot"></span>
               <span id="pill-wifi-txt">Wi-Fi • —</span>
             </button>
+            <span class="pill pill-bat hidden" id="pill-bat" title="Battery Status"></span>
             <button class="pill pill-btn pill-temp" onclick="toggleSysModal()" title="System, Wi-Fi, IP &amp; Calibration">
               <span id="pill-temp">SYS</span>
             </button>
@@ -775,6 +776,7 @@
                   <button class="target-chip active" data-b="ALL" onclick="setWifiBandFilter('ALL')">ALL (<span id="wcnt-all">0</span>)</button>
                   <button class="target-chip" data-b="2.4 GHz" onclick="setWifiBandFilter('2.4 GHz')">2.4G (<span id="wcnt-24">0</span>)</button>
                   <button class="target-chip" data-b="5 GHz" onclick="setWifiBandFilter('5 GHz')">5G (<span id="wcnt-5">0</span>)</button>
+                  <button class="target-chip hidden" id="btn-wband-6g" data-b="6 GHz" onclick="setWifiBandFilter('6 GHz')">6G (<span id="wcnt-6">0</span>)</button>
                   <span class="pill tile-chip" id="wifi-best-ch">Best 2.4G: Ch —</span>
                 </div>
                 <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -805,6 +807,7 @@
                 <div class="chip-row" id="wifi-graph-band-chips">
                   <button class="target-chip active" data-gb="2.4 GHz" onclick="setWifiGraphBand('2.4 GHz')">2.4 GHz (Ch 1–13)</button>
                   <button class="target-chip" data-gb="5 GHz" onclick="setWifiGraphBand('5 GHz')">5 GHz (Ch 36–165)</button>
+                  <button class="target-chip hidden" id="btn-wgraph-6g" data-gb="6 GHz" onclick="setWifiGraphBand('6 GHz')">6 GHz (Ch 1–233)</button>
                   <span class="pill tile-chip" id="wifi-graph-best-ch">Best 2.4G: Ch —</span>
                 </div>
                 <button class="diag-go-btn" id="btn-wifi-rescan" onclick="scanWifiNow()">RE-SCAN</button>
@@ -1581,9 +1584,9 @@
           <div id="sys-pane-general" style="display:flex;flex-direction:column;gap:8px;">
             <div class="sys-kv-grid">
               <div class="kv"><span class="k">Host / Uptime</span><span class="v" id="sys-host">—</span></div>
-              <div class="kv"><span class="k">Pi 4 CPU Temp</span><span class="v" id="sys-temp">—</span></div>
+              <div class="kv"><span class="k">CPU Temp</span><span class="v" id="sys-temp">—</span></div>
               <div class="kv">
-                <span class="k">Wi-Fi (wlan0)</span>
+                <span class="k">Wi-Fi (<span id="sys-wlan-iface">wlan0</span>)</span>
                 <span class="v" style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
                   <span id="sys-wlan">—</span>
                   <button class="mini-btn" style="padding:1px 6px;font-size:9.5px;" onclick="setSysTab('wifi')">Switch</button>
@@ -1591,8 +1594,8 @@
               </div>
               <div class="kv"><span class="k">Active Port</span><span class="v" id="sys-eth">—</span></div>
             </div>
-            <div class="sys-section">
-              <div class="k" style="font-size:10px;margin-bottom:4px;">DSI Screen Brightness</div>
+            <div class="sys-section" id="sys-sec-backlight">
+              <div class="k" style="font-size:10px;margin-bottom:4px;">Screen Brightness</div>
               <div class="sys-btn-row">
                 <button class="sys-btn" onclick="setBacklight(25)">25%</button>
                 <button class="sys-btn" onclick="setBacklight(50)">50%</button>
@@ -1600,10 +1603,10 @@
                 <button class="sys-btn" onclick="setBacklight(100)">100%</button>
               </div>
             </div>
-            <div class="sys-section">
+            <div class="sys-section" id="sys-sec-pi-opts">
               <div class="card-hdr-flex" style="border:none;padding:0;margin-bottom:4px;">
-                <span class="k" style="font-size:10px;font-weight:400;">DSI Orientation &amp; Read-Only Root (OverlayFS)</span>
-                <span class="v-warn hidden" id="sys-reboot-note" style="font-size:9.5px;">⚠ Reboot Pi to apply</span>
+                <span class="k" id="sys-opts-label" style="font-size:10px;font-weight:400;">DSI Orientation &amp; Read-Only Root (OverlayFS)</span>
+                <span class="v-warn hidden" id="sys-reboot-note" style="font-size:9.5px;">⚠ Reboot to apply</span>
               </div>
               <div class="sys-btn-row">
                 <button class="sys-btn" id="btn-ori-normal" onclick="setOrientation(false)">0° Normal</button>
@@ -1613,9 +1616,9 @@
               </div>
             </div>
             <div class="sys-section">
-              <div class="k" style="font-size:10px;margin-bottom:4px;">Safe SD Power Control (Use before unplugging USB-C bank)</div>
+              <div class="k" style="font-size:10px;margin-bottom:4px;">Safe Power Control</div>
               <div class="sys-btn-row">
-                <button class="sys-btn sys-warn" onclick="powerAction('reboot')">Reboot Pi</button>
+                <button class="sys-btn sys-warn" onclick="powerAction('reboot')">Reboot</button>
                 <button class="sys-btn sys-danger" onclick="powerAction('shutdown')">Safe Shutdown</button>
               </div>
             </div>
@@ -1824,6 +1827,7 @@
           <span class="brand-tag" id="kb-title">TOUCH INPUT</span>
           <div class="topbar-pills">
             <button class="mini-btn hidden" id="btn-kb-eye" onclick="kbToggleReveal()">Show</button>
+            <button class="mini-btn" id="btn-kb-keys-toggle" onclick="toggleKbVirtualKeys()">Hide Keys</button>
             <button class="mini-btn" id="btn-kb-mode" onclick="toggleKbLayoutMode()">Mode: QWERTY</button>
             <button class="cmd-btn cmd-neutral" onclick="closeTouchKeyboard()">✕ CANCEL</button>
           </div>
@@ -1834,6 +1838,7 @@
           <button class="kb-action-btn" onclick="kbClear()">CLR</button>
           <button class="kb-done-btn" onclick="kbSubmit()">✓ DONE</button>
         </div>
+        <div class="kb-hint hidden" id="kb-hw-hint">Type on hardware keyboard • Enter to submit • Esc to cancel</div>
         <div class="kb-keys" id="kb-keys"></div>
       </div>
     </main>
@@ -1843,7 +1848,7 @@
       <div class="bench-group">
         <label class="bench-lbl">Source:</label>
         <select id="sel-source" onchange="changeMode()">
-          <option value="live">Live Linux NIC (Pi 4 Hardware)</option>
+          <option value="live">Live Linux NIC (Hardware)</option>
           <option value="demo:healthy_1g">Demo: Aruba 2930F 1GbE + PoE+ (24.9m OK)</option>
           <option value="demo:pair_fault_100m">Demo: Broken Pair D @ 18.4m + Rogue DHCP</option>
           <option value="demo:nac_8021x_locked">Demo: Juniper EX2300 802.1X Quarantined</option>
@@ -1867,6 +1872,7 @@
 
       <div class="bench-group">
         <button class="bench-btn" onclick="toggleRawJson()">{ } JSON</button>
+        <button class="bench-btn" onclick="enterAppMode()">⛶ App Fullscreen</button>
         <button class="bench-btn" onclick="enterKiosk()">⛶ Kiosk 800×480</button>
       </div>
     </aside>
@@ -1874,6 +1880,6 @@
     <pre class="json-drawer hidden" id="json-drawer"></pre>
   </div>
 
-  <script src="/static/app.js?v=5.7"></script>
+  <script src="/static/app.js?v=5.8"></script>
 </body>
 </html>

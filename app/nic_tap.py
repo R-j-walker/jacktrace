@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from typing import Callable, List, Optional, Tuple
 
+from .config import settings
 from .models import InlineTapState, NetworkHardwareState, NicInterfaceInfo
 
 IFACE_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]{2,15}$")
@@ -264,7 +265,7 @@ class NicTapManager:
         return ok, msg
 
     async def disable_tap(self, demo_mode: bool) -> Tuple[bool, str]:
-        prev_a = self.tap.nic_a or "eth0"
+        prev_a = self.tap.nic_a or settings.iface
         prev_b = self.tap.nic_b
         if not demo_mode:
             await asyncio.to_thread(self._disable_live_bridge_sync, prev_a, prev_b)
@@ -281,7 +282,7 @@ class NicTapManager:
 
     def shutdown(self) -> None:
         if os.name != "nt":
-            self._disable_live_bridge_sync(self.tap.nic_a or "eth0", self.tap.nic_b)
+            self._disable_live_bridge_sync(self.tap.nic_a or settings.iface, self.tap.nic_b)
         self.tap.active = False
         self.tap.status = "Inactive"
 

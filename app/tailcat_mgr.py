@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .audit import make_qr_data_uri
+from .config import settings
 from .models import TailcatState
 from .nic_tap import validate_eth_iface
 
@@ -132,7 +133,7 @@ class TailcatManager:
         if clean_mode not in TAILCAT_MODES:
             raise ValueError(f"Unsupported Tailcat mode '{mode}'; expected one of {', '.join(TAILCAT_MODES)}")
 
-        target_iface = validate_capture_iface(iface) if clean_mode == "pcap_stream" else (iface or "eth0")
+        target_iface = validate_capture_iface(iface) if clean_mode == "pcap_stream" else (iface or settings.iface)
         await self.stop(notify=False)
 
         if demo_mode or os.name == "nt":
@@ -338,7 +339,7 @@ class TailcatManager:
             binary_path=self.state.binary_path,
             running=False,
             mode="idle",
-            iface="eth0",
+            iface=settings.iface,
             address="",
             client_cmd="",
             qr_svg_data_uri="",

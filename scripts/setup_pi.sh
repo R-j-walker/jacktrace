@@ -25,7 +25,7 @@ EOF
 
 mkdir -p /etc/lldpd.d
 cat >/etc/lldpd.d/nettester.conf <<EOF
-configure system interface pattern ${IFACE},eth*,enx*,!wlan*
+configure system interface pattern ${IFACE},eth*,en*,!wl*
 configure med fast-start enable
 configure dot3 power pd supported enabled powerpairs signal class class-4 type 2 source pse priority low requested 13000 allocated 25500
 EOF

@@ -432,6 +432,7 @@ class WifiSurveyManager:
             total_count=len(nets),
             count_24g=sum(1 for n in nets if n.band == "2.4 GHz"),
             count_5g=sum(1 for n in nets if n.band == "5 GHz"),
+            count_6g=sum(1 for n in nets if n.band == "6 GHz"),
             best_24g_channel=recommend_best_24g_channel(nets),
             error="",
             networks=nets,
@@ -474,7 +475,7 @@ class WifiSurveyManager:
                     ap_mode_blocked=True,
                     iface=self.iface,
                     connected_ssid=info.get("ssid") or "JackTrace-AP",
-                    error="Field AP (JackTrace-AP) active on wlan0 — stop Field AP in View 08 before scanning",
+                    error=f"Field AP (JackTrace-AP) active on {self.iface} — stop Field AP in View 08 before scanning",
                     networks=[],
                     walk=self.state.walk,
                 )
@@ -505,6 +506,7 @@ class WifiSurveyManager:
 
             count_24 = sum(1 for n in nets if n.band == "2.4 GHz")
             count_5 = sum(1 for n in nets if n.band == "5 GHz")
+            count_6 = sum(1 for n in nets if n.band == "6 GHz")
             best_24 = recommend_best_24g_channel(nets) if count_24 > 0 else 1
 
             return WifiSurveyState(
@@ -519,6 +521,7 @@ class WifiSurveyManager:
                 total_count=len(nets),
                 count_24g=count_24,
                 count_5g=count_5,
+                count_6g=count_6,
                 best_24g_channel=best_24,
                 error=err_scan.strip() if (not nets and err_scan) else "",
                 networks=nets,
@@ -547,7 +550,7 @@ class WifiSurveyManager:
 
         matched = next((n for n in self.state.networks if n.bssid == target_bssid), None)
         if not demo_mode and self.state.ap_mode_blocked:
-            raise RuntimeError(self.state.error or "Field AP is active on wlan0")
+            raise RuntimeError(self.state.error or f"Field AP is active on {self.iface}")
 
         ssid = matched.ssid if matched else (
             self.state.connected_ssid if target_bssid == self.state.connected_bssid else target_bssid

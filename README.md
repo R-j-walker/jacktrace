@@ -111,12 +111,11 @@ python -m venv .venv
 .\.venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-Open `http://localhost:8080` to use the `800×480` simulator + desktop **Bench Bar** with 4 built-in demo scenarios (`healthy_1g`, `pair_fault_100m`, `nac_8021x_locked`, `unpatched_dead`), or append `?kiosk=1` for fullscreen touchscreen layout.
+Open `http://localhost:8080` to use the `800×480` simulator + desktop **Bench Bar** with 4 built-in demo scenarios (`healthy_1g`, `pair_fault_100m`, `nac_8021x_locked`, `unpatched_dead`), append `?kiosk=1` for fixed `800×480` touchscreen mode, or `?mode=app` for responsive laptop/UMPC fullscreen (e.g. GPD Pocket 3).
 
-### 2. Provision on Raspberry Pi 4 (Raspberry Pi OS Lite Bookworm / Trixie)
+### 2. Provision on Raspberry Pi 4 or x86_64 Linux (e.g. GPD Pocket 3)
 
-Install the OS to your SD card using the official Raspberry Pi flashing tool. Raspberry Pi OS Lite is ideal.
-Copy the files to the device (home directory works fine).
+On **Raspberry Pi OS Lite** (Bookworm / Trixie):
 
 ```bash
 cd ~/jacktrace
@@ -124,6 +123,15 @@ sudo bash scripts/setup_pi.sh eth0        # System networking tools, lldpd, tail
 sudo bash scripts/setup_kiosk.sh          # Waveshare 5" DSI KMS + Cage Wayland + Chromium kiosk (pass --flip for 180°)
 sudo bash scripts/setup_splash.sh         # Optional 800x480 Plymouth boot/shutdown splash + seamless DRM handoff
 ```
+
+On **x86_64 Debian 13 (Trixie) / Ubuntu** (including **GPD Pocket 3**):
+
+```bash
+cd ~/jacktrace
+sudo bash scripts/setup_x86.sh --profile gpd-pocket3 --mode desktop   # or --mode kiosk
+```
+
+See [`docs/hardware-and-setup.md`](docs/hardware-and-setup.md) for x86_64/GPD Pocket 3 details and hardware TDR caveats.
 
 ### 3. Stream Updates from Windows PowerShell to Pi
 

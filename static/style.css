@@ -70,6 +70,40 @@ body.kiosk-mode .kiosk-hide {
   display: none !important;
 }
 
+body.app-mode .bench-shell {
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+body.app-mode .tester-screen {
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.app-mode .bench-bar,
+body.app-mode .json-drawer {
+  display: none !important;
+}
+
+@media (min-width: 900px) {
+  body.app-mode .sys-dialog {
+    width: min(780px, 92vw) !important;
+    max-height: min(560px, 90vh) !important;
+  }
+  body.app-mode .wcli-grid {
+    height: min(320px, 46vh);
+  }
+  body.app-mode .spark-card canvas {
+    width: 100%;
+    height: auto;
+    max-height: 54vh;
+  }
+}
+
 @media (max-width: 820px) and (max-height: 520px) {
   .bench-shell { padding: 0; }
   .tester-screen { width: 100vw; height: 100vh; border: none; border-radius: 0; }
@@ -242,6 +276,28 @@ body.kiosk-mode .kiosk-hide {
 
 .pill-temp {
   color: #a1a1aa;
+}
+
+.pill-bat {
+  background: #17231b;
+  border-color: #22c55e;
+  color: #86efac;
+  font-family: Consolas, monospace;
+}
+.pill-bat.bat-warn {
+  background: #282011;
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+.pill-bat.bat-low {
+  background: #331518;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+.pill-bat.bat-chg {
+  background: #102530;
+  border-color: #38bdf8;
+  color: #bae6fd;
 }
 
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #71717a; }
@@ -1627,6 +1683,25 @@ body.kiosk-mode .kiosk-hide {
 .kb-key:active { background: #f59e0b; border-color: #fbbf24; color: #111214; }
 .kb-key-alt { background: #262932; color: #fbbf24; font-size: 13px; font-weight: 800; }
 .kb-key-space { flex: 4; font-size: 13px; color: #a1a1aa; }
+.kb-modal.kb-compact {
+  justify-content: center;
+  background: rgba(9, 10, 12, 0.90);
+}
+.kb-modal.kb-compact .kb-keys {
+  display: none;
+}
+.kb-modal.kb-compact .kb-topbar,
+.kb-modal.kb-compact .kb-display-row {
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}
+.kb-hint {
+  font-size: 10.5px;
+  color: #8b909a;
+  text-align: center;
+  margin-top: 2px;
+}
 
 /* System Modal: Client Wi-Fi Switcher */
 .wcli-bar {

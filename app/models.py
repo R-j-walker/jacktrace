@@ -144,15 +144,30 @@ class TdrReportState(BaseModel):
     pairs: List[TdrPairResult] = Field(default_factory=list)
 
 
+class PlatformCapabilities(BaseModel):
+    platform_kind: str = "generic_linux"  # "raspberry_pi" | "x86_linux" | "generic_linux" | "demo"
+    arch: str = ""
+    is_raspberry_pi: bool = False
+    has_battery: bool = False
+    supports_backlight: bool = False
+    supports_dsi_flip: bool = False
+    supports_overlayfs: bool = False
+    supports_tdr: bool = True
+
+
 class SystemHealthState(BaseModel):
     hostname: str = "jacktrace"
     cpu_temp_c: Optional[float] = None
     uptime_str: str = "—"
     backlight_pct: Optional[int] = None
+    battery_pct: Optional[int] = None
+    battery_status: str = ""
+    wifi_iface: str = "wlan0"
     screen_flipped: bool = False
     reboot_required: bool = False
     overlayfs_active: bool = False
     overlayfs_pending_enable: bool = False
+    capabilities: PlatformCapabilities = Field(default_factory=PlatformCapabilities)
 
 
 # ==========================================
@@ -530,6 +545,7 @@ class WifiSurveyState(BaseModel):
     total_count: int = 0
     count_24g: int = 0
     count_5g: int = 0
+    count_6g: int = 0
     best_24g_channel: Optional[int] = None
     error: str = ""
     networks: List[WifiNetwork] = Field(default_factory=list)

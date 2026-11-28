@@ -196,6 +196,12 @@ def format_phy_uid(uid: int) -> str:
         return f"Broadcom BCM54213PE (0x{uid:08x} rev {rev})"
     if is_broadcom_phy_uid(uid):
         return f"Broadcom Gigabit PHY (0x{uid:08x})"
+    if (uid & 0xFFFFFC00) == 0x001CC800:
+        return f"Realtek PHY (0x{uid:08x})"
+    if (uid >> 16) == 0x0141:
+        return f"Marvell PHY (0x{uid:08x})"
+    if (uid >> 16) in (0x02A8, 0x0154):
+        return f"Intel PHY (0x{uid:08x})"
     return f"IEEE PHY (0x{uid:08x})"
 
 
@@ -662,11 +668,27 @@ def run_hardware_tdr_sync(
 
     orig_adv = ADVERTISE_ALL_10_100
     orig_c1000 = CTRL1000_ALL_1G
+    phy_modified = False
     try:
         id1 = mdio.read_reg(MII_PHYSID1)
         id2 = mdio.read_reg(MII_PHYSID2)
         phy_uid = ((id1 & 0xFFFF) << 16) | (id2 & 0xFFFF)
         phy_label = format_phy_uid(phy_uid)
+
+        if not is_broadcom_phy_uid(phy_uid):
+            return TdrReportState(
+                running=False,
+                supported=False,
+                method="Unsupported PHY",
+                phy_id=phy_label,
+                cable_type=eff_type,
+                nvp_pct=eff_nvp,
+                overall_verdict="WARN",
+                summary=(
+                    f"Hardware Cable TDR is unsupported on {phy_label} "
+                    "(requires Broadcom BCM54xx or ethtool --cable-test PHY)."
+                ),
+            )
 
         read_adv = mdio.read_reg(MII_ADVERTISE)
         orig_adv = read_adv if (read_adv & 0x01E0) else ADVERTISE_ALL_10_100
@@ -683,10 +705,12 @@ def run_hardware_tdr_sync(
             attempts_used = attempt + 1
             # Wake PHY from APD sleep if unplugged/asleep or retrying after collision
             if (not prev_link_up) or (attempt >= 1):
+                phy_modified = True
                 mdio.write_reg(MII_BMCR, BMCR_RESET)
                 time.sleep(0.20 + attempt * 0.04)
 
             # Configure 1G AN without advertising capabilities, then expose legacy expansion registers
+            phy_modified = True
             mdio.write_reg(MII_BMCR, BMCR_1G_AN)
             mdio.write_reg(MII_ADVERTISE, ADVERTISE_CSMA)
             mdio.write_reg(MII_CTRL1000, 0x0000)
@@ -749,12 +773,13 @@ def run_hardware_tdr_sync(
             summary=f"MDIO TDR read failed: {exc}",
         )
     finally:
-        try:
-            mdio.write_reg(MII_ADVERTISE, orig_adv)
-            mdio.write_reg(MII_CTRL1000, orig_c1000)
-            mdio.write_reg(MII_BMCR, BMCR_1G_AN_RESTART)
-        except OSError:
-            pass
+        if phy_modified:
+            try:
+                mdio.write_reg(MII_ADVERTISE, orig_adv)
+                mdio.write_reg(MII_CTRL1000, orig_c1000)
+                mdio.write_reg(MII_BMCR, BMCR_1G_AN_RESTART)
+            except OSError:
+                pass
         mdio.close()
-        if mdio_factory is None:
+        if phy_modified and mdio_factory is None:
             subprocess.run(["ethtool", "-s", iface, "autoneg", "on"], capture_output=True, check=False)
